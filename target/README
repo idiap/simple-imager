@@ -1,0 +1,36 @@
+Simple Imager - Target Installation Environment
+***********************************************
+
+The Simple Imager target installation environment is a light-weight Linux
+environment, using only upstream sources to build its dedicated Linux kernel
+and the initrd image containing all the utilities required to carry out the
+installation of a target host:
+ - starting by initializing the hardware (udev)
+ - configuring the network (Busybox udhcpc)
+ - partitioning and formatting the disks (parted, e2fsprogs, LVM, etc.)
+ - downloading the target image and overrides (rsync, aria2c)
+ - unpacking the image and overrides efficiently (pixzi, pbzip2, pigz)
+ - reporting the installation progress to the Simple Imager monitor (curl)
+ - etc.
+
+Once built (see the BUILD file), the resulting 'kernel' and 'initrd.img' files
+are to be installed in the user existing network (PXE) boot environment (also
+see sample 'grub.cfg' and 'pxelinux.cfg' files).
+
+The target installation scripts (see the README.scripts file) ought to be
+installed in the Simple Imager server, to be retrieved via RSync as part of the
+target installation initialization (thus allowing them to be easily modified,
+without having the rebuild the installation environment itself).
+
+Users are expected to customize those scripts to match their installation and
+configuration requirements (see the README.enviroment and README.variables
+files).
+
+By using the BitTorrent protocol to download installation images - which can
+weight up to several gigabytes (even when using XZ compression) - and main-
+taining the targets as "seeders" as long as possible (until their installation
+is complete), simultaneous large-scale deployment (several hundreds hosts) can
+be performed, without taxing the central storage infrastructure, and in a
+matter of minutes (thanks also to multi-threaded decompression of downloaded
+tarballs).
+

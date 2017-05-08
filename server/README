@@ -1,0 +1,40 @@
+Simple Imager - Installation Material Server
+********************************************
+
+Overview
+========
+
+The Simple Imager server gathers and makes target installation material -
+images, overrides, scripts and installation configuration - available for
+download by target installation hosts.
+
+It is thus intended to perform three tasks:
+ - pull (copy) reference images from source hosts using RSync (si_pull)
+ - pack those images into download/torrent-friendly tarballs (si_pack)
+ - make those images, along other installation material, available for download
+   by target installation hosts, via RSync or BitTorrent (si_server)
+
+Overrides complement images by allowing to complement target installation
+with purpose-specific material (be it configuration files, additional binaries,
+etc.)
+
+Please refer to Simple Imager target package/documentation for further
+information on installation scripts (README.scripts).
+
+Simple Imager installation configuration is managed through a 'genders' [1],
+thanks to the following ad-hoc attributes:
+ - 'si_target'     designates the entry as a Simple Imager target
+ - 'si_group'      specifies the installation group
+ - 'si_image'      specifies the installation image
+ - 'si_overrides'  specifies a (colon-separated) list of installation overrides
+ - 'si_script'     specify the (actual) installation script
+
+Other attributes are available to further-configure the installation; please
+refer to Simple Imager target package/documentation for further information on
+environment variables (README.variables).
+
+
+References
+==========
+[1] https://github.com/chaos/genders
+

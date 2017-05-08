@@ -1,0 +1,106 @@
+#!/bin/bash
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 1999-2010 Brian Elliott Finley [SystemImager]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Usage
+[ "${1##*-}" == 'help' ] && cat << EOF && exit 1
+USAGE:
+  ${0##*/}
+
+SYSNOPSIS:
+  Start RSync in daemon mode such as to allow the server to pull the image
+  from this (source) host.
+
+ENVIRONMENT:
+  The following environment variables are available to customize the daemon,
+  which default value can be overriden in /etc/default/si_source:
+
+  SI_SOURCE_HOSTS: 127.0.0.1
+    Space-separated list of hostnames or IP addresses allowed to connect to
+    the daemon (rsyncd.conf: hosts_allow)
+
+  SI_SOURCE_BIND: *
+    Specific IP address to bind the daemon to (rsyncd.conf: address)
+
+  SI_SOURCE_PORT: 873
+    TCP port to have the daemon listen on (rsyncd.conf: port)
+EOF
+
+
+## Parameters
+# ... environment
+MY_SOURCE_HOSTS="${SI_SOURCE_HOSTS}"
+MY_SOURCE_BIND="${SI_SOURCE_BIND}"
+MY_SOURCE_PORT="${SI_SOURCE_PORT}"
+# ... configuration
+[ -e /etc/default/si_source ] && . /etc/default/si_source
+[ -z "${MY_SOURCE_HOSTS}" ] && MY_SOURCE_HOSTS="${SI_SOURCE_HOSTS}"
+[ -z "${MY_SOURCE_BIND}" ] && MY_SOURCE_BIND="${SI_SOURCE_BIND}"
+[ -z "${MY_SOURCE_PORT}" ] && MY_SOURCE_PORT="${SI_SOURCE_PORT}"
+# ... magic
+[ "${MY_SOURCE_BIND}" == '*' ] && MY_SOURCE_BIND=
+# ... default
+[ -z "${MY_SOURCE_HOSTS}" ] && MY_SOURCE_HOSTS='127.0.0.1'
+[ -z "${MY_SOURCE_PORT}" ] && MY_SOURCE_PORT='873'
+# ... runtime
+MY_RUNTIME_LOG='/var/log/simple-imager/si_source.rsyncd.log'
+
+
+## Check
+[ -z "$(which rsync)" ] && echo "ERROR: Missing 'rsync' executable" >&2 && exit 1
+ps="$(netstat -Wtlnp | awk "{if(\$4~\":${MY_SOURCE_PORT}\$\") print \$7}" | sort -u | tr '\n' ',')"; ps="${ps%%,}"
+[ -n "${ps}" ] && echo "ERROR: Cannot start RSync daemon; a process is already listening on port ${MY_SOURCE_PORT} (${ps})" >&2 && exit 1
+
+
+## Launch RSync daemon
+
+# Mounts
+mount > /var/run/si_source.mount || exit 1
+trap "rm -f '/var/run/si_source.mount'" EXIT
+
+# Configuration
+MY_RUNTIME_CONF="$(mktemp --suffix=.rsyncd.conf)" || exit 1
+trap "rm -f '/var/run/si_source.mount' '${MY_RUNTIME_CONF}'" EXIT
+cat << EOF > "${MY_RUNTIME_CONF}"
+## Temporary RSync daemon configuration (${0##*/}:$$)
+
+# System settings
+uid = root
+gid = root
+log file = ${MY_RUNTIME_LOG}
+
+# Network settings
+timeout = 60
+${MY_SOURCE_BIND:-#[n/a] }address = ${MY_SOURCE_BIND}
+port = ${MY_SOURCE_PORT}
+hosts allow = ${MY_SOURCE_HOSTS}
+
+# Service settings
+read only = yes
+list = yes
+numeric ids = yes
+dont compress = *.gz *.tgz *.zip *.Z *.ZIP *.bz2 *.xz *.txz *.deb *.rpm
+
+[si_source]
+path = /
+exclude = ${MY_RUNTIME_CONF} ${MY_RUNTIME_LOG}
+EOF
+
+# Launch daemon
+cat << EOF
+INFO: Launching RSync daemon with the following parameters:
+      SOURCE_HOSTS: .. ${MY_SOURCE_HOSTS}
+      SOURCE_BIND: ... ${MY_SOURCE_BIND:-*}
+      SOURCE_PORT: ... ${MY_SOURCE_PORT}
+      RUNTIME_LOG: ... ${MY_RUNTIME_LOG}
+
+PLEASE PULL IMAGE FROM SERVER NOW AND PRESS <CTRL+C> TO TERMINATE...
+
+EOF
+rsync --daemon --no-detach --config="${MY_RUNTIME_CONF}"
+

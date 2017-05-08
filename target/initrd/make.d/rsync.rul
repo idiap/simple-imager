@@ -1,0 +1,70 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+RSYNC_INFO			:= http://rsync.samba.org/
+RSYNC_VERSION		:= 3.1.2
+RSYNC_TARBALL		:= rsync-$(RSYNC_VERSION).tar.gz
+RSYNC_URL			:= https://download.samba.org/pub/rsync/src/$(RSYNC_TARBALL)
+RSYNC_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(RSYNC_TARBALL)
+RSYNC_DIR			:= $(INITRD_SOURCE_DIR)/rsync-$(RSYNC_VERSION)
+
+
+## Targets
+.PHONY: rsync_download
+rsync_download: $(RSYNC_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(RSYNC_DOWNLOAD)
+
+.PHONY: rsync_configure
+rsync_configure: $(RSYNC_DIR).configure
+
+.PHONY: rsync_build
+rsync_build: $(RSYNC_DIR).build
+
+.PHONY: rsync_install
+rsync_install: $(RSYNC_DIR).install
+INITRD_BUILD_ALL += $(RSYNC_DIR).install
+
+.PHONY: rsync_clean
+rsync_clean: $(RSYNC_DIR).clean
+
+
+## Recipes (deps: zlib)
+$(RSYNC_DIR).configure: $(RSYNC_DIR).unpack
+	cd $(RSYNC_DIR) \
+	&& CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include" \
+	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   ./configure \
+	     --prefix=/usr \
+	     --with-included-popt \
+	     --disable-debug
+	touch $@
+
+$(RSYNC_DIR).build: $(RSYNC_DIR).configure
+	cd $(RSYNC_DIR) \
+	&& $(MAKE) -j $(NCPUS) rsync
+	touch $@
+
+$(RSYNC_DIR).install: $(RSYNC_DIR).build
+	cd $(RSYNC_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(RSYNC_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(RSYNC_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(RSYNC_DOWNLOAD) -x
+	touch $@
+
+$(RSYNC_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(RSYNC_DIR)
+	$(DOWNLOAD) $(RSYNC_TARBALL) $(RSYNC_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(RSYNC_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(RSYNC_DIR)*
+

@@ -1,0 +1,47 @@
+#!/bin/sh
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## UDHCP-client bound/renew
+
+# Interface
+ifconfig ${interface} ${ip} ${broadcast:+broadcast ${broadcast}} ${subnet:+netmask ${subnet}}
+
+# Hostname
+if [ -n "${hostname}" ]; then
+  hostname "${hostname}"
+  echo "${hostname}" > /etc/hostname
+fi
+
+# Gateway(s)
+if [ -n "${router}" ]; then
+  while route del default gw 0.0.0.0 dev ${interface} &>/dev/null; do :; done
+  for router_n in ${router}; do
+    route add default gw ${router_n} dev ${interface}
+  done
+fi
+
+# DNS server(s)
+if [ -n "${dns}" ]; then
+  echo "# (U)DHCP-client configured" > /etc/resolv.conf
+  [ -n "${domain}" ] && echo "domain ${domain}" >> /etc/resolv.conf
+  for dns_n in ${dns}; do
+    echo "nameserver ${dns_n}" >> /etc/resolv.conf
+  done
+fi
+
+# NTP server(s)
+if [ -n "${ntpsrv}" ]; then
+  echo "# (U)DHCP-client configured" > /etc/ntp.conf
+  for ntp_n in ${ntpsrv}; do
+    echo "server ${ntp_n}" >> /etc/ntp.conf
+  done
+fi
+
+# Save (U)DHCP variables
+exec /etc/udhcpc/savevars
+

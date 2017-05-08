@@ -1,0 +1,60 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Finalize installation
+siPrintHeader "Finalizing Installation"
+siLogInfo "[${0##*/}] Finalizing installation"
+
+# Reboot delay
+if [ ${SI_REBOOT_DELAY} -gt 0 ]; then
+  siLogNotice "[${0##*/}] Delaying reboot (${SI_REBOOT_DELAY} seconds)"
+  siShellCommand sleep ${SI_REBOOT_DELAY}
+fi
+
+# Kill lingering processes
+siLogNotice "[${0##*/}] Killing lingering processes"
+siNetworkBtStop
+
+# Save installation log
+siLogNotice "[${0##*/}] Saving installation log (to /var/log/simple-imager)"
+siShellCommand mkdir -p "${SI_DISK_TARGET}/var/log/simple-imager"
+[ $? -ne 0 ] && siLogWarning "[${0##*/}] Failed to create directory to save installation log (/var/log/simple-imager)"
+siShellCommand cp /var/log/*.log /tmp/*.vars "${SI_DISK_TARGET}/var/log/simple-imager/."
+[ $? -ne 0 ] && siLogWarning "[${0##*/}] Failed to save installation log (to /var/log/simple-imager)"
+
+# Remove staging directory
+siLogNotice "[${0##*/}] Removing staging directory (${SI_DISK_TARGET}/local/scratch/staging)"
+rm -rf "${SI_DISK_TARGET}/local/scratch/staging"
+[ $? -ne 0 ] && siLogWarning "[${0##*/}] Failed to remove staging directory (${SI_DISK_TARGET}/local/scratch/staging)"
+
+# Unmount partitions
+siLogNotice "[${0##*/}] Unmounting partitions"
+__umount() {
+  local name="${1}" mountpoint="${2}"
+
+  siShellCommand umount "${mountpoint}"
+  if [ $? -ne 0 ]; then
+    siLogWarning "[${0##*/}] Failed to unmount ${name} partition (${mountpoint})"
+    siShellCommand mount -no remount,ro "${mountpoint}"
+    siLogWarning "[${0##*/}] Failed to make ${name} partition read-only (${mounpoint})"
+  fi
+}
+# ... system partitions
+for part in /proc /sys /dev; do
+  mount | grep -qF " on ${SI_DISK_TARGET}${part} type " && __umount "${part}" "${SI_DISK_TARGET}${part}"
+done
+# ... target partitions
+for target in $(mount | awk "{if (\$3 ~ \"${SI_DISK_TARGET}\") print \$3}" | sort -r); do
+  __umount "${target#${SI_DISK_TARGET}}" "${target}"
+done
+unset part target
+
+# Done
+siLogInfo "[${0##*/}] Done with finalizing installation"
+siPrintConfirmOptional "Done with finalizing installation; proceed ?"
+

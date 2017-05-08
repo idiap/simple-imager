@@ -1,0 +1,8 @@
+## Simple Imager
+#  Network interfaces configuration
+#  (further completed by siNetwork* scripts and SI_NET_* variables)
+
+# Loopback
+iface lo inet loopback
+auto lo
+

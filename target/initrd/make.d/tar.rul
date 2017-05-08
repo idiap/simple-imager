@@ -1,0 +1,74 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+TAR_INFO			:= https://www.gnu.org/software/tar/
+TAR_VERSION			:= 1.29
+TAR_TARBALL			:= tar-$(TAR_VERSION).tar.xz
+TAR_URL				:= http://ftp.gnu.org/gnu/tar/$(TAR_TARBALL)
+TAR_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(TAR_TARBALL)
+TAR_DIR				:= $(INITRD_SOURCE_DIR)/tar-$(TAR_VERSION)
+
+
+## Targets
+.PHONY: tar_download
+tar_download: $(TAR_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(TAR_DOWNLOAD)
+
+.PHONY: tar_configure
+tar_configure: $(TAR_DIR).configure
+
+.PHONY: tar_build
+tar_build: $(TAR_DIR).build
+
+.PHONY: tar_install
+tar_install: $(TAR_DIR).install
+INITRD_BUILD_ALL += $(TAR_DIR).install
+
+.PHONY: tar_clean
+tar_clean: $(TAR_DIR).clean
+
+
+## Recipes
+$(TAR_DIR).configure: $(TAR_DIR).unpack
+	cd $(TAR_DIR) \
+	&& FORCE_UNSAFE_CONFIGURE=1 \
+	   CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include" \
+	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   ./configure \
+	     --prefix=/usr \
+	     --without-selinux \
+	     --with-lzma=xz \
+	     --disable-nls \
+	     --disable-rpath \
+	     --disable-silent-rules
+	touch $@
+
+$(TAR_DIR).build: $(TAR_DIR).configure
+	cd $(TAR_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(TAR_DIR).install: $(TAR_DIR).build
+	cd $(TAR_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(TAR_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(TAR_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(TAR_DOWNLOAD) -x
+	touch $@
+
+$(TAR_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(TAR_DIR)
+	$(DOWNLOAD) $(TAR_TARBALL) $(TAR_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(TAR_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(TAR_DIR)*
+

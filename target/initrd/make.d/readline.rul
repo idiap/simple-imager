@@ -1,0 +1,71 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+READLINE_INFO		:= https://cnswww.cns.cwru.edu/php/chet/readline/rltop.html
+READLINE_VERSION	:= 7.0
+READLINE_TARBALL	:= readline-$(READLINE_VERSION).tar.gz
+READLINE_URL		:= http://ftp.gnu.org/gnu/readline/$(READLINE_TARBALL)
+READLINE_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(READLINE_TARBALL)
+READLINE_DIR		:= $(INITRD_SOURCE_DIR)/readline-$(READLINE_VERSION)
+
+
+## Targets
+.PHONY: readline_download
+readline_download: $(READLINE_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(READLINE_DOWNLOAD)
+
+.PHONY: readline_configure
+readline_configure: $(READLINE_DIR).configure
+
+.PHONY: readline_build
+readline_build: $(READLINE_DIR).build
+
+.PHONY: readline_install
+readline_install: $(READLINE_DIR).install
+INITRD_BUILD_ALL += $(READLINE_DIR).install
+
+.PHONY: readline_clean
+readline_clean: $(READLINE_DIR).clean
+
+
+## Recipes (deps: ncurses)
+$(READLINE_DIR).configure: $(READLINE_DIR).unpack
+	cd $(READLINE_DIR) \
+	&& CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include" \
+	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   ./configure \
+	     --prefix=/usr \
+	     --with-curses
+	touch $@
+
+$(READLINE_DIR).build: $(READLINE_DIR).configure
+	cd $(READLINE_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+# NOTE: Remove examples directory (/usr/share/readline)
+$(READLINE_DIR).install: $(READLINE_DIR).build
+	cd $(READLINE_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	rm -rf $(INITRD_IMAGE_DIR)/usr/share/readline
+	touch $@
+
+$(READLINE_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(READLINE_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(READLINE_DOWNLOAD) -x
+	touch $@
+
+$(READLINE_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(READLINE_DIR)
+	$(DOWNLOAD) $(READLINE_TARBALL) $(READLINE_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(READLINE_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(READLINE_DIR)*
+

@@ -1,0 +1,62 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+KERNEL_MAKE_DIR		:= $(KERNEL_DIR)/make.d
+KERNEL_PATCH_DIR	:= $(KERNEL_DIR)/patch.d
+KERNEL_CONFIG_DIR	:= $(KERNEL_DIR)/conf.d
+KERNEL_BUILD_DIR	:= $(BUILD_DIR)/kernel
+KERNEL_SOURCE_DIR	:= $(KERNEL_BUILD_DIR)/source
+
+
+## Includes
+include $(KERNEL_MAKE_DIR)/linux-firmware.rul
+include $(KERNEL_MAKE_DIR)/linux.rul
+
+
+## Targets
+.PHONY: kernel_download
+kernel_download: $(KERNEL_DIR).download
+
+.PHONY: kernel_build
+kernel_build: $(KERNEL_BUILD_DIR).build
+
+.PHONY: kernel_install
+kernel_install: $(KERNEL_BUILD_DIR).install
+
+.PHONY: kernel_uninstall
+kernel_uninstall: $(KERNEL_BUILD_DIR).uninstall
+
+.PHONY: kernel_clean
+kernel_clean: $(KERNEL_BUILD_DIR).clean
+
+
+## Recipes
+$(KERNEL_DIR).download: $(KERNEL_DOWNLOAD_ALL)
+
+$(KERNEL_BUILD_DIR).mkdir: $(BUILD_DIR).mkdir
+	test -d $(KERNEL_BUILD_DIR) || mkdir $(KERNEL_BUILD_DIR)
+	touch $@
+
+$(KERNEL_SOURCE_DIR).mkdir: $(KERNEL_BUILD_DIR).mkdir
+	test -d $(KERNEL_SOURCE_DIR) || mkdir $(KERNEL_SOURCE_DIR)
+	touch $@
+
+$(KERNEL_BUILD_DIR).build: $(KERNEL_DIR).download $(KERNEL_BUILD_ALL)
+
+$(KERNEL_BUILD_DIR).install: $(KERNEL_BUILD_DIR).build $(BOOT_DIR).mkdir
+	@echo "## Install the kernel"
+	cp $(LINUX_IMAGE) $(BOOT_DIR)/kernel
+	touch $@
+
+$(KERNEL_BUILD_DIR).uninstall:
+	rm -f $(BOOT_DIR)/kernel
+	rm -f $(KERNEL_BUILD_DIR).install
+
+$(KERNEL_BUILD_DIR).clean: $(KERNEL_BUILD_DIR).uninstall
+	rm -rf $(KERNEL_BUILD_DIR)*
+

@@ -1,0 +1,76 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+GENDERS_INFO		:= https://www.gnu.org/software/genders/
+GENDERS_VERSION		:= 1-22-1
+GENDERS_VERSHORT	:= $(shell echo $(GENDERS_VERSION) | sed 's/^\([^-]*-[^-]*\)-.*$$/\1/;s/-/./g')
+GENDERS_TARBALL		:= genders-$(GENDERS_VERSHORT).tar.gz
+GENDERS_URL			:= https://github.com/chaos/genders/releases/download/genders-$(GENDERS_VERSION)/$(GENDERS_TARBALL)
+GENDERS_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(GENDERS_TARBALL)
+GENDERS_DIR			:= $(INITRD_SOURCE_DIR)/genders-$(GENDERS_VERSHORT)
+
+
+## Targets
+.PHONY: genders_download
+genders_download: $(GENDERS_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(GENDERS_DOWNLOAD)
+
+.PHONY: genders_configure
+genders_configure: $(GENDERS_DIR).configure
+
+.PHONY: genders_build
+genders_build: $(GENDERS_DIR).build
+
+.PHONY: genders_install
+genders_install: $(GENDERS_DIR).install
+INITRD_BUILD_ALL += $(GENDERS_DIR).install
+
+.PHONY: genders_clean
+genders_clean: $(GENDERS_DIR).clean
+
+
+## Recipes
+$(GENDERS_DIR).configure: $(GENDERS_DIR).unpack
+	cd $(GENDERS_DIR) \
+	&& CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include" \
+	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   ./configure \
+	     --prefix=/usr \
+	     --with-non-shortened-hostnames \
+	     --with-cplusplus-extensions=no \
+	     --with-java-extensions=no \
+	     --with-perl-extensions=no \
+	     --with-python-extensions=no \
+	     --enable-shared=no
+	touch $@
+
+# WARNING: Build FAILS if parallel build (-j ...) is enabled!
+$(GENDERS_DIR).build: $(GENDERS_DIR).configure
+	cd $(GENDERS_DIR) \
+	&& $(MAKE)
+	touch $@
+
+$(GENDERS_DIR).install: $(GENDERS_DIR).build
+	cd $(GENDERS_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(GENDERS_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(GENDERS_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(GENDERS_DOWNLOAD) -x
+	touch $@
+
+$(GENDERS_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(GENDERS_DIR)
+	$(DOWNLOAD) $(GENDERS_TARBALL) $(GENDERS_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(GENDERS_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(GENDERS_DIR)*
+

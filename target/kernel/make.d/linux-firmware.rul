@@ -1,0 +1,26 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+LINUX_FIRMWARE_INFO	:= http://kernel.org
+LINUX_FIRMWARE_GIT	:= http://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
+LINUX_FIRMWARE_DIR	:= $(DOWNLOAD_DIR)/linux-firmware
+
+
+## Targets
+.PHONY: linux_firmware_download
+linux_firmware_download: $(LINUX_FIRMWARE_DIR).download
+KERNEL_DOWNLOAD_ALL += $(LINUX_FIRMWARE_DIR).download
+
+
+## Recipes
+$(LINUX_FIRMWARE_DIR).download: $(DOWNLOAD_DIR).mkdir
+	cd $(DOWNLOAD_DIR) \
+	&& ( test -d $(LINUX_FIRMWARE_DIR) || git clone $(LINUX_FIRMWARE_GIT) )
+	touch $@
+

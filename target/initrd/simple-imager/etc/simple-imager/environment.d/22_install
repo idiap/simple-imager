@@ -1,0 +1,78 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Install functions
+
+# Image
+siInstallImage() {
+  local image="${1}"
+  [ -z "${SI_VARIABLES}" ] && siLogError "[Install:image] Simple Imager environment is undefined (please call 'siVariablesLoad' beforehand)" && return 1
+  [ -z "${image}" ] && siLogError "[Install:image] Undefined image" && return 1
+
+  # Logging/Reporting
+  siMonitorInstall
+  siLogNotice "[Install:image] Installing image: ${image} (${SI_SERVER_PROTOCOL_IMAGE})"
+
+  # Download
+  case "${SI_SERVER_PROTOCOL_IMAGE}" in
+
+    'rsync')
+      siLogDebug "[Install:image] Image installation completed (as part of its download)"
+      ;;
+
+    'bittorrent')
+      [ ! -d "${SI_DISK_TARGET}" ] && siLogError "[Install:image] Missing/invalid target directory (${SI_DISK_TARGET})" && return 1
+      [ ! -d "${SI_DISK_STAGING}" ] && siLogError "[Install:image] Missing/invalid staging directory (${SI_DISK_STAGING})" && return 1
+      local tarball="${SI_DISK_STAGING_IMAGE}/${SI_IMAGE_TARBALL}"
+      [ ! -f "${tarball}" ] && siLogError "[Install:image] Missing/invalid image tarball (${tarball})" && return 1
+      ptar "${tarball}" -C "${SI_DISK_TARGET}" -x
+      [ $? -ne 0 ] && siLogError "[Install:image] Failed to install image (${image})" && return 1
+      ;;
+
+    *)
+      siLogError "[Install:image] Invalid protocol (${SI_SERVER_PROTOCOL_IMAGE})" && return 1
+      ;;
+
+  esac
+  return 0
+}
+
+# Override
+siInstallOverride() {
+  local override="${1}"
+  [ -z "${SI_VARIABLES}" ] && siLogError "[Install:override] Simple Imager environment is undefined (please call 'siVariablesLoad' beforehand)" && return 1
+  [ -z "${override}" ] && siLogError "[Install:override] Undefined override" && return 1
+
+  # Logging/Reporting
+  siMonitorInstall
+  siLogNotice "[Install:override] Installing override: ${override} (${SI_SERVER_PROTOCOL_OVERRIDES})"
+
+  # Download
+  case "${SI_SERVER_PROTOCOL_OVERRIDES}" in
+
+    'rsync')
+      siLogDebug "[Install:override] Override installation completed (as part of its download)"
+      ;;
+
+    'bittorrent')
+      [ ! -d "${SI_DISK_TARGET}" ] && siLogError "[Install:override] Missing/invalid target directory (${SI_DISK_TARGET})" && return 1
+      [ ! -d "${SI_DISK_STAGING}" ] && siLogError "[Install:override] Missing/invalid staging directory (${SI_DISK_STAGING})" && return 1
+      local tarball="${SI_DISK_STAGING_OVERRIDES}/${SI_OVERRIDE_TARBALL}"
+      [ ! -f "${tarball}" ] && siLogError "[Install:override] Missing/invalid override tarball (${tarball})" && return 1
+      ptar "${tarball}" -C "${SI_DISK_TARGET}" -x
+      [ $? -ne 0 ] && siLogError "[Install:override] Failed to install override (${override})" && return 1
+      ;;
+
+    *)
+      siLogError "[Install:override] Invalid protocol (${SI_SERVER_PROTOCOL_OVERRIDES})" && return 1
+      ;;
+
+  esac
+  return 0
+}
+

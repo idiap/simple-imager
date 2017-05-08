@@ -1,0 +1,260 @@
+Simple Imager - Target Installation Environment
+***********************************************
+(please see the README.environment file beforehand)
+
+
+Simple Imager 'SI_*' Environment Variables
+==========================================
+
+Simple Imager defines a set of environment variables - all prefixed with the
+'SI_' indentifier - which allow to fine-tune the target installation process
+and may be overridden by the user to fit her agenda.
+
+The installation environment will automatically initialize those variables at
+boot time (using the siVariablesInit and siVariablesSaveBoot functions) and
+store the variables name/value pairs in the /tmp/simple-imager.vars file.
+
+Thereafter, the entire environment can be retrieved and further modified using
+the ad-hoc functions: siVariablesLoad and siVariablesSave.
+
+
+Available Variables
+-------------------
+
+Below are detailed all the variables available to the user, along their default
+value and the way they may be modified.
+
+* HOSTNAME='%DHCP%'
+  REQUIRED; Default: (according to DHCP); Boot: HOSTNAME
+
+  The host name (without trailing domain).
+
+* DOMAINNAME='%DHCP%'
+  Optional; Default: (according to DHCP); Boot: DOMAINNAME
+
+  The domain name (without the hostname part)
+
+* SI_SERVER='%DHCP%'
+  REQUIRED; Default: none; Boot: SI_SERVER; DHCP: option 225 = text
+
+  The hostname or (preferably) IPv4 address of the Simple Imager server.
+  The DHCP (RFC 2132, text) option 225 MUST be formatted as:
+    <hostname|ip>[:<port][!<protocol>][!<protocol-overrides>]
+
+* SI_SERVER_PROTOCOL='%AUTO%' 
+* SI_SERVER_PROTOCOL_IMAGE='%INHERIT%'
+* SI_SERVER_PROTOCOL_OVERRIDES='%INHERIT%'
+  Optional; Default: bittorrent; Boot: SI_SERVER_PROTOCOL(*); DHCP: see SI_SERVER
+
+  The protocol used to download the installation image, respectively the
+  overrides. Valid values are:
+    'rsync'       to use the RSync protocol
+    'bittorrent'  to use the BitTorrent protocol
+  (the latter being recommended for large simultaneous deployment)
+
+* SI_MONITOR='%DHCP%'
+  Optional; Default: none; Boot: SI_MONITOR; DHCP: option 226 = text
+
+  The hostname or (preferably) IPv4 address of the Simple Imager monitor.
+  The DHCP (RFC 2132, text) option 226 MUST be formatted as:
+    {<hostname|ip>[:<port]|<url>}[!<protocol>]
+
+* SI_MONITOR_PROTOCOL='%AUTO%'
+  Optional; Default: 'restful'; Boot: SI_MONITOR_PROTOCOL; DHCP: see SI_MONITOR
+  
+
+  The protocol used to report installation status to the monitor server.
+  Valid values are:
+    'restful'  to use Simple Imager RESTful protocol
+    'legacy'   to use SystemImager legacy protocol
+
+* SI_SYSLOG='%DHCP%'
+  Optional; Default: none; Boot: SI_SYSLOG; DHCP: option 227 = text
+
+  The hostname or (preferably) IPv4 address of a Syslog (RFC 3164) server.
+  The DHCP (RFC 2132, text) option 227 MUST be formatted as:
+    <hostname|ip>[:<port]
+
+* SI_CONSOLE_LEVEL=3
+  Optional; Default: 3 (Notice); Boot: SI_CONSOLE_LEVEL
+
+  Console log level
+  (see below for available levels)
+
+* SI_LOGFILE_LEVEL=5
+  Optional; Default: 5 (Shell); Boot: SI_LOGFILE_LEVEL
+
+  Logfile level (/var/log/siInstallLog.log)
+  (see below for available levels)
+
+* SI_SYSLOG_LEVEL=2
+  Optional; Default: 2 (Info); Boot: SI_SYSLOG_LEVEL
+
+  Syslog level (/var/log/messages and remote Syslog server; see SI_SYSLOG)
+  (see below for available levels)
+
+* SI_MONITOR_LEVEL=3
+  Optional; Default: 3 (Notice); Boot: SI_MONITOR_LEVEL
+
+  Simple Imager monitor log level
+  (see below for available levels)
+
+* SI_LOG_PROGRESS='yes'
+  Optional; Default: yes; Boot: SI_LOG_PROGRESS
+
+  Whether to log image/overrides download progress, with a (fixed) log
+  level of 3 (Notice).
+
+* SI_LOG_VERBOSE='no'
+  Optional; Default: no; Boot: SI_LOG_VERBOSE
+
+  Whether to enable verbosity for supporting shell commands.
+
+* SI_CONFIRM='no'
+  Optional; Default: no; Boot: SI_CONFIRM
+
+  Whether to prompt and wait for confirmation at significant step of the
+  installation process.
+
+* SI_FORCE='no'
+  Optional; Default: no; Boot: SI_CONFIRM
+
+  Whether to perform potentially dangerous actions - e.g. disk partitioning and
+  partitions formatting - without prompting for confirmation.
+
+* SI_GROUP='%AUTO%'
+  Optional; Default: none; Boot: SI_GROUP; Genders: si_group
+
+  Installation group.
+
+* SI_IMAGE='%AUTO%'
+  Optional; Default: none; Boot: SI_IMAGE; Genders: si_image
+
+  Installation image.
+
+* SI_OVERRIDES='%AUTO%'
+  Optional; Default: none; Boot: SI_OVERRIDES; Genders: si_overrides
+
+  Installation overrides.
+
+* SI_SCRIPT='%AUTO%'
+  REQUIRED; Default: none; Boot: SI_SCRIPT; Genders: si_script
+
+  Installation script.
+
+* SI_NET_INIT='dhcp'
+  Optional; Default: 'dhcp'; Boot: SI_NET_INIT
+
+  Method to use to initialize the network. Valid values are:
+    'dhcp'    to use IPv4 DHCP (RFC 2131)
+    'static'  to configure the network statically
+              (see other SI_NET_* variables below)
+
+* SI_NET_DEV='%AUTO%'
+  Optional; Default: 1st interface; Boot: SI_NET_DEV
+
+  Network interface to use for setting up the network.
+
+* SI_NET_ADDR='%DHCP%'
+  Optional; Default: (according to DHCP); Boot: SI_NET_ADDR
+
+  Host IPv4 address.
+
+* SI_NET_MASK='%DHCP%'
+  Optional; Default: (according to DHCP); Boot: SI_NET_MASK
+
+  IPv4 network mask (using 255.255.255.255 notation).
+
+* SI_NET_BCAST='%DHCP%'
+  Optional; Default: (according to DHCP); Boot: SI_NET_BCAST
+
+  IPv4 broadcast address.
+
+* SI_NET_GW='%DHCP%'
+  Optional; Default: (according to DHCP); Boot: SI_NET_GW [comma-separated list]
+
+  IPv4 default gateway(s) IP address(es).
+
+* SI_NET_DNS='%DHCP%'
+  Optional; Default: (according to DHCP); Boot: SI_NET_DNS [comma-separated list]
+
+  IPv4 DNS server(s) IP address(es).
+
+* SI_NET_NTP='%DHCP%'
+  Optional; Default: (according to DHCP); Boot: SI_NET_NTP [comma-separated list]
+
+  IPv4 NTP server(s) IP address(es).
+
+*SI_DISK_DEV='%AUTO%'
+  Optional; Default: none; Boot: SI_DISK_DEV [comma-separated list];
+  Genders: si_disk_dev [colon-separated list]
+
+  Target installation disk(s)
+
+*SI_DISK_PART='%AUTO%'
+  Optional; Default: 'yes'; Boot: SI_DISK_PART; Genders: si_disk_part
+
+  Whether to perform disk(s) partitioning.
+  (confirmation required, unless SI_FORCE='yes')
+
+*SI_DISK_WIPE='%AUTO%'
+  Optional; Default: 'yes'; Boot: SI_DISK_WIPE; Genders: si_disk_wipe
+
+  Whether to wipe/format disk(s) partition(s).
+  (confirmation required, unless SI_FORCE='yes')
+
+*SI_DISK_TARGET='%AUTO%'
+  Optional; Default: '/target'; Boot: SI_DISK_TARGET; Genders: si_disk_target
+
+  Installation environment directory where the target partition(s)
+  will be mounted.
+
+*SI_DISK_STAGING='%AUTO%'
+*SI_DISK_STAGING_IMAGE='%INHERIT%'
+*SI_DISK_STAGING_OVERRIDES='%INHERIT%'
+  Optional; Default: '/staging; Boot: SI_DISK_STAGING(*); Genders: si_disk_staging
+
+  Installation environment directory where BitTorrent-downloaded tarballs
+  (image/overrides) will be temporarily stored before being unpacked.
+  WARNING: The installation script SHOULD symlink this path to an actual
+  directory/partition with enough capacity to accomodate the downloaded
+  tarballs (up to several GBs)!
+
+*SI_REBOOT_DELAY=0
+  Optional; Default: 0; Boot: SI_REBOOT_DELAY; Genders: si_reboot_delay
+
+  Delay, in seconds, before rebooting the installed target after its
+  installation is complete.
+  NOTE: When performing simultaneous large-scale deployment using BitTorrent,
+  this can be used to keep seeding installation material (images/overrides)
+  and prevent other target hosts to tax the Simple Imager server and the
+  central storage infrastructure.
+
+
+Available Log Levels
+--------------------
+
+Log messages are filtered out according to the following levels:
+
+  0  Error    Non-recoverable errors (installation interrupted)
+  1  Warning  Warning, incl. recoverable errors
+  2  Info     Low-volume informational messages
+  3  Notice   High-volume informational messages (incl. progress indicators)
+  4  Debug    Debug messages
+  5  Shell    Shell commands
+
+
+About IPv6 Support
+------------------
+
+IPv6 is currently NOT supported by Simple Imager.
+
+Enabling IPv6 support would imply:
+ - have a fully IPv6-compliant network (PXE) boot chain [not easy]
+ - enabling IPv6 in the (installation environment) Linux kernel [easy]
+ - enabling IPv6 and verifying its support in necessary (installation
+   environment) tools, starting with DHCPv6 [not easy]
+ - verifying all scripts for their IPv6 support [rather easy]
+
+Simply put: stick to IPv4 (in your private network) and be happy with it!
+

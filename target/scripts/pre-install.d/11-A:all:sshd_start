@@ -1,0 +1,36 @@
+#!/bin/sh
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Load Simple Imager resources
+
+# Environment
+. /etc/simple-imager/environment
+
+# Variables
+siVariablesLoad
+
+
+## Start SSH daemon
+
+# Authorized keys
+siLogNotice "[${0##*/}] Setting authorized keys (/root/.ssh/authorized_keys)"
+siShellCommand mkdir -p /root/.ssh
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create SSH configuration directory (/root/.ssh)" && exit 1
+#cat > /root/.ssh/authorized_keys << EOF
+### Simple Imager: Add authorized SSH keys below
+#EOF
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to set authorized keys (/root/.ssh/authorized_keys)" && exit 1
+
+# Start server
+siNetworkSshdStart
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to start the SSH server" && exit 1
+siLogInfo "[${0##*/}] SSH server started"
+
+# Done
+exit 0
+

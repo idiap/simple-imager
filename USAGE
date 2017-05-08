@@ -1,0 +1,130 @@
+Simple Imager - Linux Imaging and Deployment Made Easy
+******************************************************
+
+Global Concept
+==============
+
+The objective of Simple Imager is to provide a framework to easily maintain
+host images and automatically deploy them to other hosts, potentially up
+to several hundreds simultaneously.
+
+In order to do so, Simple Imager provides or relies on the following
+components:
+
+* "Source" hosts - also known as "Golden Clients" - which are manually
+  installed and carefully tuned to match one's requirements. When ready,
+  they will make themselves available to the imaging server (see below)
+  via a RSync service *temporarily* enabled for that purpose.
+
+* An imaging "Server", from which the source hosts "Image" - a copy of
+  their entire (local) disk(s) - will be "Pulled" via RSync into a
+  central repository. Each image will then be "Packed" into its corres-
+  ponding "tarball" and "torrent" file, ready to be deployed, via RSync
+  or BitTorrent, to target hosts (see below).
+
+* "Target" hosts, which be (re-)installed by booting into a dedicated light-
+  weight (PXE-friendly) Linux installation environment via the network,
+  where a user-provided installation "Script(s)" will be executed to:
+   - partition the disk(s)
+   - format the partition(s)
+   - download the image from the imaging server (via RSync or BT)
+   - install (unpack) the image
+   - configure host-specific components (mostly hostname and network)
+   - re-configure (re-install) the bootloader on the disk(s)
+   - reboot the host into its new image
+
+* A "Monitor" server, ideally co-hosted along the imaging server, which
+  allow target hosts to report their installation progress and status,
+  and take appropriate steps when needed; e.g. reconfigure the network
+  bootloader to have the target host boot from its local disk when the
+  installation is complete.
+
+* An *external* DNS server, with A and PTR records for all target hosts.
+
+* An *external* DHCP server, configured to allow all target hosts to
+  boot via the network (PXE boot) with an IP address matching that of
+  the DNS server.
+
+* An *external* TFTP server, hosting the bootloader(s) - SysLinux, GRUB,
+  etc. - matching that of the DHCP server and its PXE configuration.
+
+* An *external* (optional) HTTP server, ideally co-hosted with the TFTP
+  server, allowing the bootloader to retrieve the target installation
+  environment's "Kernel" and "InitRD" via faster/more-reliable TCP (HTTP)
+  networking rather than UDP (TFTP).
+
+Simple Imager makes no - and will never! - attempt to provide the last
+four of these components since:
+1. they are most likely already existing in the user environment;
+2. their installation and configuretion being purposes of their own,
+   (way) out of the scope of Simple Image purpose (and objective to
+   remain as simple as possible).
+
+
+Step-by-Step
+============
+
+On the "Source" host
+--------------------
+
+Start by installing and configure the source host such as to fit your
+requirements.
+
+Then install the (very light-weight) 'simple-imager-source' package.
+
+Execute the 'si_source' script to make the "source" host temporarily available
+for the Simple Imager server to copy (pull) its image.
+
+
+On the Simple Imager "Server"
+-----------------------------
+
+Install and configure the 'simple-imager-server' package (along the optional
+but highly-recommended 'simple-imager-target-scripts' package).
+
+Make the source host(s) available to have their image copied (pull); see above.
+
+Execute the 'si_pull' script to pull the image(s) from the source host(s).
+
+Execute the 'si_pack' script to pack the image(s) into download/torrent-friendly
+tarballs.
+
+Configure target host(s) installation by editing the '/etc/genders' file.
+
+Copy, adapt or write your own installation scripts to match your requirements
+(see the 'simple-imager-target-scripts' package documentation for further
+details).
+
+Launch the Simple Image server:
+ - as a service: 'service si_server start'
+ - manually:     'si_server start'
+
+
+On the Simple Imager "Monitor"
+------------------------------
+(ideally co-hosted on the Simple Imager server)
+
+Install and configure the 'simple-imager-monitor' package.
+
+Use 'sqlite3' tool to query the '/var/lib/simple-imager/si_monitor.sqlite'
+database and monitor target host(s) installation progress.
+
+Write your own monitoring hooks into '/etc/simple-imager/si_monitor.hooks.d'.
+
+
+On the "Target" host
+--------------------
+
+Install the 'simple-imager-target-boot' package and copy the provided kernel
+and initrd in your existing PXE/TFTP server.
+
+Make sure you have installation material and configuration ready on the Simple
+Imager server; see above.
+
+Make sure the target has entries in your DNS and DHCP servers:
+ - DNS:  A and PTR records
+ - DHCP: network (PXE) boot into Simple Imager target installation environment
+
+Boot the target host into Simple Imager target installation environment, which
+will automatically carry out the host installation.
+

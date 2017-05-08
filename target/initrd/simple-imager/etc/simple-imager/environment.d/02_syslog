@@ -1,0 +1,27 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Syslog-ing
+
+# Log
+siSyslogLog() {
+  siMiscIsFalse "${SI_NET_UP}" && return
+  [ -z "${SI_SYSLOG}" ] && return
+  local message="${1}" level="${2}" priority
+
+  case "${level}" in
+    '0') priority="local0.error";;
+    '1') priority="local0.warning";;
+    '2') priority="local0.info";;
+    '3') priority="local0.notice";;
+    '4'|'5') priority="local0.debug";;
+    *) priority="local0.info";;
+  esac
+  logger -t 'simple-imager' -p "${priority}" "${message}"
+}
+

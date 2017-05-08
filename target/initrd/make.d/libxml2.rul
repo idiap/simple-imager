@@ -1,0 +1,73 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+LIBXML2_INFO		:= http://xmlsoft.org/
+LIBXML2_VERSION		:= 2.9.4
+LIBXML2_TARBALL		:= libxml2-$(LIBXML2_VERSION).tar.gz
+LIBXML2_URL			:= ftp://xmlsoft.org/libxml2/$(LIBXML2_TARBALL)
+LIBXML2_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(LIBXML2_TARBALL)
+LIBXML2_DIR			:= $(INITRD_SOURCE_DIR)/libxml2-$(LIBXML2_VERSION)
+
+
+## Targets
+.PHONY: libxml2_download
+libxml2_download: $(LIBXML2_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(LIBXML2_DOWNLOAD)
+
+.PHONY: libxml2_configure
+libxml2_configure: $(LIBXML2_DIR).configure
+
+.PHONY: libxml2_build
+libxml2_build: $(LIBXML2_DIR).build
+
+.PHONY: libxml2_install
+libxml2_install: $(LIBXML2_DIR).install
+INITRD_BUILD_ALL += $(LIBXML2_DIR).install
+
+.PHONY: libxml2_clean
+libxml2_clean: $(LIBXML2_DIR).clean
+
+
+## Recipes (deps: zlib, xz)
+$(LIBXML2_DIR).configure: $(LIBXML2_DIR).unpack
+	cd $(LIBXML2_DIR) \
+	&& CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include -I$(INITRD_IMAGE_DIR)/usr/include/lzma" \
+	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   ./configure \
+	     --prefix=/usr \
+	     --with-sysroot=$(INITRD_IMAGE_DIR) \
+	     --with-zlib=$(ZLIB_DIR) \
+	     --with-lzma=$(XZ_DIR) \
+	     --without-python \
+	     --disable-silent-rules
+	touch $@
+
+$(LIBXML2_DIR).build: $(LIBXML2_DIR).configure
+	cd $(LIBXML2_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(LIBXML2_DIR).install: $(LIBXML2_DIR).build
+	cd $(LIBXML2_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(LIBXML2_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(LIBXML2_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(LIBXML2_DOWNLOAD) -x
+	touch $@
+
+$(LIBXML2_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(LIBXML2_DIR)
+	$(DOWNLOAD) $(LIBXML2_TARBALL) $(LIBXML2_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(LIBXML2_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(LIBXML2_DIR)*
+

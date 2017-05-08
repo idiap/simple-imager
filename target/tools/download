@@ -1,0 +1,62 @@
+#!/bin/sh
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Usage
+[ $# -lt 1 ] && cat << EOF && exit 1
+USAGE:
+  ${0##*/} <file> <download-url> [<destination-directory>:~/download]
+
+SYNOPSIS:
+  Download the given file from the given UR to the given destination
+  directory, unless it already exists.
+EOF
+
+# Arguments
+MY_FILE="${1}"
+MY_URL="${2}"
+MY_DIR="${3}"
+
+
+## Parameters
+MY_DIR_DFLT="${HOME}/download"
+MY_WGET_OPTS="--quiet --passive-ftp"
+
+
+## Download
+
+# Variables
+[ -z "${MY_DIR}" ] && MY_DIR="${MY_DIR_DFLT}"
+MY_PATH="${MY_DIR%%/}/${MY_FILE}"
+MY_PATH_DFLT="${MY_DIR_DFLT}/${MY_FILE}"
+
+# Check
+if [ ! -d "${MY_DIR}" ]; then
+  echo "ERROR(${0##*/}): Invalid/missing download directory; ${MY_DIR}" >&2
+  exit 1
+fi
+if [ -e "${MY_PATH}" ]; then
+  echo "INFO(${0##*/}): File already downloaded; ${MY_FILE}"
+  exit 0
+fi
+if [ -e "${MY_PATH_DFLT}" ]; then
+  echo "INFO(${0##*/}): File already downloaded; ${MY_FILE_DFLT}"
+  echo "INFO(${0##*/}): Symlinking; ${MY_FILE} -> ${MY_FILE_DFLT}"
+  ln -s "${MY_FILE_DFLT}" "${MY_FILE}" 
+  exit 0
+fi
+
+# Download
+echo "INFO(${0##*/}): Downloading; ${MY_URL} => ${MY_FILE}"
+wget ${MY_WGET_OPTS} "${MY_URL}" -O "${MY_PATH}"
+e=$?; if [ ${e} -ne 0 ]; then
+  echo "ERROR(${0##*/}): Download failed; code=${e}"
+  rm -f "${MY_PATH}"
+  exit ${e}
+fi
+

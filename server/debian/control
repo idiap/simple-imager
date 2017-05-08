@@ -1,0 +1,15 @@
+Source: simple-imager-server
+Section: admin
+Priority: optional
+Maintainer: Cédric Dufour <cedric.dufour@idiap.ch>
+Homepage: https://github.com/idiap/simple-imager
+Standards-Version: 3.9.8
+Build-Depends: debhelper (>= 9), dh-systemd, bash, help2man
+
+Package: simple-imager-server
+Architecture: all
+Depends: bash, genders, rsync
+Recommends: pixz, bittorrent, simple-imager-target-scripts
+Suggests: simple-imager-monitor, simple-imager-target-boot
+Description: Simple Imager - Imaging server utilities and service
+

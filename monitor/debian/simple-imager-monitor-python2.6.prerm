@@ -1,0 +1,19 @@
+#!/bin/sh
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+set -e
+
+# Clean-up compiled python resources
+# NOTE: we implement our own 'python-support' in order to package Python 2.6
+#       even on platforms where it is deprecated   
+if which pyclean >/dev/null 2>&1; then
+  pyclean -p simple-imager-monitor-python2.6
+else
+  dpkg -L simple-imager-monitor-python2.6 | grep \.py$ | while read file
+  do
+    rm -f "${file}"[co] >/dev/null
+  done
+fi
+                    
+exit 0
+

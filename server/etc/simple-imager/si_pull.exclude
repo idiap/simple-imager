@@ -1,0 +1,35 @@
+## Image retrieval exclusion (rsync: --exclude-file)
+
+# System stuff
+/sys/*
+/dev/*
+/proc/*
+lost+found
+
+# Runtime stuff
+/run/*
+/var/run/*
+/lock/*
+/var/lock/*
+
+# LVM stuff
+/etc/lvm/.cache
+/etc/lvm/cache/*
+/etc/lvm/backup/*
+/etc/lvm/archive/*
+
+# DHCP stuff
+/var/lib/dhcp/*
+
+# NFS stuff
+/var/lib/nfs/state
+/var/lib/nfs/*tab
+/var/lib/nfs/*/*
+
+# Mounted media
+/media/*
+
+# Network stuff
+/etc/udev/rules.d/70-persistent-net.rules
+/etc/udev/rules.d/75-persistent-net-generator.rules
+

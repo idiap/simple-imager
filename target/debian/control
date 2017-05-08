@@ -1,0 +1,18 @@
+Source: simple-imager-target
+Section: admin
+Priority: optional
+Maintainer: Cédric Dufour <cedric.dufour@idiap.ch>
+Homepage: https://github.com/idiap/simple-imager
+Standards-Version: 3.9.8
+Build-Depends: debhelper (>= 9), bash, wget, build-essential, automake, bc, bison, flex, git, libtool, pkg-config, cpio, pigz, pbzip2, pixz
+
+Package: simple-imager-target-boot
+Architecture: all
+Recommends: simple-imager-server
+Description: Simple Imager - Target installation environment (kernel and initrd)
+
+Package: simple-imager-target-scripts
+Architecture: all
+Recommends: simple-imager-server
+Description: Simple Imager - Target installation environment (scripts)
+

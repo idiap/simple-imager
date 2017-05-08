@@ -1,0 +1,79 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+COREUTILS_INFO		:= https://www.gnu.org/software/coreutils/
+COREUTILS_VERSION	:= 8.27
+COREUTILS_TARBALL	:= coreutils-$(COREUTILS_VERSION).tar.xz
+COREUTILS_URL		:= http://ftp.gnu.org/gnu/coreutils/$(COREUTILS_TARBALL)
+COREUTILS_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(COREUTILS_TARBALL)
+COREUTILS_DIR		:= $(INITRD_SOURCE_DIR)/coreutils-$(COREUTILS_VERSION)
+
+
+## Targets
+.PHONY: coreutils_download
+coreutils_download: $(COREUTILS_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(COREUTILS_DOWNLOAD)
+
+.PHONY: coreutils_configure
+coreutils_configure: $(COREUTILS_DIR).configure
+
+.PHONY: coreutils_build
+coreutils_build: $(COREUTILS_DIR).build
+
+.PHONY: coreutils_install
+coreutils_install: $(COREUTILS_DIR).install
+INITRD_BUILD_ALL += $(COREUTILS_DIR).install
+
+.PHONY: coreutils_clean
+coreutils_clean: $(COREUTILS_DIR).clean
+
+
+## Recipes
+$(COREUTILS_DIR).configure: $(COREUTILS_DIR).unpack
+	cd $(COREUTILS_DIR) \
+	&& FORCE_UNSAFE_CONFIGURE=1 \
+	   CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include" \
+	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   ./configure \
+	     --prefix=/usr \
+	     --without-gmp \
+	     --without-selinux \
+	     --with-openssl=yes \
+	     --disable-acl \
+	     --disable-assert \
+	     --disable-libcap \
+	     --disable-libsmack \
+	     --disable-nls \
+	     --disable-rpath \
+	     --disable-silent-rules
+	touch $@
+
+$(COREUTILS_DIR).build: $(COREUTILS_DIR).configure
+	cd $(COREUTILS_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(COREUTILS_DIR).install: $(COREUTILS_DIR).build
+	cd $(COREUTILS_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(COREUTILS_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(COREUTILS_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(COREUTILS_DOWNLOAD) -x
+	touch $@
+
+$(COREUTILS_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(COREUTILS_DIR)
+	$(DOWNLOAD) $(COREUTILS_TARBALL) $(COREUTILS_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(COREUTILS_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(COREUTILS_DIR)*
+

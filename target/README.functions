@@ -1,0 +1,192 @@
+Simple Imager - Target Installation Environment
+***********************************************
+(please see the README.environment file beforehand)
+
+
+Simple Imager 'si*' Shell Functions
+===================================
+
+The Simple Imager target installation environment provides a set of shell
+functions - all prefixed with the 'si' identifier - to manage the installation
+environment itself.
+
+Below are listed all the shell (Busybox ASH) functions that are available to
+the user (or used by the environment itself).
+
+
+Variables Functions
+-------------------
+
+* siVariablesLoad()
+
+  Load all Simple Imager variables.
+
+  THIS MUST BE DONE BEFORE USING ANY SIMPLE IMAGER RESOURCE.
+
+* siVariablesSave(name, value)
+
+  Set and store the given Simple Imager variable to the given value.
+
+
+(Console) Print Functions
+-------------------------
+
+* siPrintBanner(title), siPrintSection(title), siPrintHeader(title)
+
+  Print a nicely formatted and colorized banner/.../header with the given title.
+
+* siPrintError(msg), siPrintWarning(msg), siPrintInfo(msg), siPrintNotice(msg),
+  siPrintDebug(msg)
+
+  Print a nicely prefixed and colorized error/.../debug message. The message
+  will be filtered based on the console logging level; see the SI_CONSOLE_LEVEL
+  environment variable.
+
+  NOTE: You SHOULD favor the corresponding siLog* functions (see below), which
+  will log/report the message to the various available/configured backend(s).
+
+
+Logging/Monitoring Functions
+----------------------------
+
+* siMonitorInit(), siMonitorStart(), siMonitorPreInstall(), siMonitorDownload(),
+  siMonitorPostInstall(), siMonitorComplete(), siMonitorError()
+
+  Switch the Simple Imager monitor to the given status.
+
+* siLogError(msg), siLogWarning(msg), siLogInfo(msg), siLogNotice(msg),
+  siLogDebug(msg), siLogProgress(msg, percent, speed)
+
+  Print/log/report a nicely prefixed and colorized error/.../progress message.
+  Each backend will filter the message based on its configured logging level;
+  see the SI_*_LEVEL environment variables.
+
+  NOTE: Errors are considered non-recoverable by Simple Imager. Consequently,
+  siLogError will automatically call siMonitorError to report the error to the
+  Simple Imager monitor. The user SHOULD call siConsoleError right after (and
+  thus interrupt the installation process).
+
+
+Download/Install Functions
+--------------------------
+
+* siDownloadImage(image), siDownloadOverride(override)
+
+  Download the given image/override, using the configured protocol;
+  see SI_SERVER_PROTOCOL(*) environment variables.
+
+* siInstallImage(image), siInstallOverride(override)
+
+  Install (unpack) the given image/override.
+
+  WARNING: The given image/override MUST have been downloaded beforehand!
+
+
+Pre-/Post-Installation Scripts Functions
+----------------------------------------
+
+* siTargetPreInstall(), siTargetPostInstall()
+
+  Execute all (target-matched) pre-/post-installation scripts.
+  (see README.scripts for further details)
+
+
+Network Functions
+-----------------
+
+* siNetworkNtpQuery()
+
+  Query the configured NTP server(s) - see the SI_NET_NTP environment
+  variable - and update the host (UTC) time accordingly.
+
+* siNetworkSshdDelkeys(), siNetworkSshdGenkeys()
+
+  Delete/(Re-)generate the SSH server host keys.
+
+* siNetworkSshdStart(), siNetworkSshdStop()
+
+  Start/stop the SSH server (and allow remote connections).
+
+  WARNING: The 'root' user SSH authorized keys (/root/.ssh/authorized_keys)
+  MUST be created before starting the server (password authentication being
+  disabled)!
+  
+* siNetworkBtStop()
+
+  Stop all BitTorrent clients/seeders (that have been started by the siDownload*
+  functions; see above).
+
+  NOTE: This SHOULD be done at the latest possible moment, to allow other
+  targets to benefit from installation matrial seeding as long as possible
+  during simultaneous large-scale deployment (also see the SI_REBOOT_DELAY
+  environment variable).
+
+
+Shell/Console Functions
+-----------------------
+
+* siShellCommand(...)
+
+  Log and execute the given shell command.
+
+  NOTE: You SHOULD always use this function to execute significant commands,
+  such as to allow them to appear in the logs (and ease troubleshooting).
+
+* siConsole(), siConsoleComplete(), siConsoleError()
+
+  Drop to a console (shell) prompt, optionally displaying a nicely formatted
+  and colorized complete/error banner.
+
+
+Miscellaneous Functions
+-----------------------
+
+* siMiscIsTrue(value), siMiscIsFalse(value)
+
+  Return true (false) when the first character of the given value is (not)
+  among: '1', 'Y', 'y', 'T', 't'
+
+* siMiscToBytes(value)
+
+  Echo the given {T,Ti,G,Gi,M,Mi,k,ki}B-suffixed value as B(ytes).
+
+
+System Functions
+----------------
+
+Other functions are available, used as part of the initialization of the
+installation environment, and which should consequently not concern the
+user. They are listed here for the sake of completeness:
+
+* siVariablesInit()
+
+  Initialize Simple Imager environment variables (see README.variables)
+
+* siVariablesSaveBoot()
+
+  Parse the boot command line (options) and save uppercase variables as
+  Simple Imager environment variables.
+
+* siNetworkInit()
+
+  Initialize the network, statically or using DHCP depending on the setting
+  of the SI_NET_INIT variable.
+
+* siTargetInit()
+
+  Initialize the target installation configuration, by retrieving the target-
+  specific parameters based on its assigned HOSTNAME and the server-provided
+  configuration file: Simple Imager 'genders' file or SystemImager legacy
+  'cluster.txt'.
+
+* siTargetInstall()
+
+  Execute the target installation script (see README.scripts for further
+  details).
+
+
+Last-but-not-Least
+------------------
+
+Have a look a the sample installation scripts to get the gist of it!
+

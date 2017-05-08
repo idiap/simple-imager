@@ -1,0 +1,122 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+UTILLINUX_INFO		:= https://www.kernel.org/pub/linux/utils/util-linux/
+UTILLINUX_VERSION	:= 2.29.2
+UTILLINUX_VERSHORT	:= $(shell echo $(UTILLINUX_VERSION) | sed 's/^\([^.]*\.[^.]*\)\..*$$/\1/')
+UTILLINUX_TARBALL	:= util-linux-$(UTILLINUX_VERSION).tar.xz
+UTILLINUX_URL		:= https://www.kernel.org/pub/linux/utils/util-linux/v$(UTILLINUX_VERSHORT)/$(UTILLINUX_TARBALL)
+UTILLINUX_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(UTILLINUX_TARBALL)
+UTILLINUX_DIR		:= $(INITRD_SOURCE_DIR)/util-linux-$(UTILLINUX_VERSION)
+
+
+## Targets
+.PHONY: utillinux_download
+utillinux_download: $(UTILLINUX_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(UTILLINUX_DOWNLOAD)
+
+.PHONY: utillinux_configure
+utillinux_configure: $(UTILLINUX_DIR).configure
+
+.PHONY: utillinux_build
+utillinux_build: $(UTILLINUX_DIR).build
+
+.PHONY: utillinux_install
+utillinux_install: $(UTILLINUX_DIR).install
+INITRD_BUILD_ALL += $(UTILLINUX_DIR).install
+
+.PHONY: utillinux_clean
+utillinux_clean: $(UTILLINUX_DIR).clean
+
+
+## Recipes
+$(UTILLINUX_DIR).configure: $(UTILLINUX_DIR).unpack
+	cd $(UTILLINUX_DIR) \
+	&& CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include" \
+	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   ./configure \
+	     --prefix=/usr \
+	     --exec-prefix=/usr \
+	     --without-python \
+	     --without-selinux \
+	     --without-systemd \
+	     --with-sysroot=$(INITRD_IMAGE_DIR) \
+	     --disable-assert \
+	     --disable-nls \
+	     --disable-rpath \
+	     --disable-silent-rules \
+	     --disable-agetty \
+	     --disable-bash-completion \
+	     --disable-bfs \
+	     --disable-cal \
+	     --disable-cramfs \
+	     --disable-eject \
+	     --disable-fallocate \
+	     --disable-fdformat \
+	     --disable-fsck \
+	     --disable-hwclock \
+	     --disable-ipcrm \
+	     --disable-ipcs \
+	     --disable-kill \
+	     --disable-last \
+	     --disable-libfdisk \
+	     --disable-libsmartcols \
+	     --disable-logger \
+	     --disable-losetup \
+	     --disable-lslogins \
+	     --disable-mesg \
+	     --disable-minix \
+	     --disable-mountpoint \
+	     --disable-nologin \
+	     --disable-nsenter \
+	     --disable-partx \
+	     --disable-pg-bell \
+	     --disable-pivot_root \
+	     --disable-raw \
+	     --disable-rename \
+	     --disable-runuser \
+	     --disable-schedutils \
+	     --disable-setpriv \
+	     --disable-su \
+	     --disable-sulogin \
+	     --disable-switch_root \
+	     --disable-ul \
+	     --disable-unshare \
+	     --disable-use-tty-group \
+	     --disable-utmpdump \
+	     --disable-wall \
+	     --disable-wdctl \
+	     --disable-widechar \
+	     --disable-zramctl \
+	     --enable-usrdir-path
+	touch $@
+
+$(UTILLINUX_DIR).build: $(UTILLINUX_DIR).configure
+	cd $(UTILLINUX_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(UTILLINUX_DIR).install: $(UTILLINUX_DIR).build
+	cd $(UTILLINUX_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(UTILLINUX_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(UTILLINUX_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(UTILLINUX_DOWNLOAD) -x
+	touch $@
+
+$(UTILLINUX_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(UTILLINUX_DIR)
+	$(DOWNLOAD) $(UTILLINUX_TARBALL) $(UTILLINUX_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(UTILLINUX_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(UTILLINUX_DIR)*
+

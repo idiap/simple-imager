@@ -1,0 +1,23 @@
+#!/bin/sh
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Save (U)DHCP-client variables
+cat > /tmp/udhcpc.${interface}.vars << EOF
+DHCP_HOSTNAME='${hostname}'
+DHCP_DOMAINNAME='${domain}'
+DHCP_ADDR='${ip}'
+DHCP_MASK='${subnet}'
+DHCP_BCAST='${broadcast}'
+DHCP_GW='${router// /,}'
+DHCP_DNS='${dns// /,}'
+DHCP_NTP='${ntpsrv// /,}'
+DHCP_SI_SERVER='${siserver}'
+DHCP_SI_MONITOR='${simonitor}'
+DHCP_SI_SYSLOG='${sisyslog}'
+EOF
+

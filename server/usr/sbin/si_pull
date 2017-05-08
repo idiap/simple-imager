@@ -1,0 +1,136 @@
+#!/bin/bash
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 1999-2010 Brian Elliott Finley [SystemImager]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Usage
+[ $# -lt 2 -o "${1##*-}" == 'help' ] && cat << EOF && exit 1
+USAGE:
+  ${0##*/} <image-name> <source-host>
+
+SYSNOPSIS:
+  Pull (create/update) the given image from the given source host.
+
+ENVIRONMENT:
+  The following environment variables are available to customize the retrieval,
+  which default value can be overriden in /etc/default/si_server:
+
+  SI_REPOSITORY_IMAGES=/var/lib/simple-imager/images
+    Images repository (directory) path
+
+  SI_PULL_EXCLUDE_FILE=/etc/simple-imager/si_pull.exclude
+    RSync exclusions file path (rsync: --exclude-file)
+
+  SI_PULL_FILESYSTEMS='vfat ext2 ext3 ext4 xfs'
+    Space-separated list of source host filesystems (partitions) to include in
+    the image (mount)
+
+  SI_SOURCE_PORT: 873
+    TCP port to have the daemon listen on (rsyncd.conf: port)
+EOF
+
+
+## Arguments
+MY_PULL_IMAGE="${1}"
+MY_SOURCE_HOST="${2}"
+
+
+## Parameters
+# ... environment
+MY_REPOSITORY_IMAGES="${SI_REPOSITORY_IMAGES}"
+MY_PULL_EXCLUDE_FILE="${SI_PULL_EXCLUDE_FILE}"
+MY_PULL_FILESYSTEMS="${SI_PULL_FILESYSTEMS}"
+MY_SOURCE_PORT="${SI_SOURCE_PORT}"
+# ... configuration
+[ -e /etc/default/si_server ] && . /etc/default/si_server
+[ -z "${MY_REPOSITORY_IMAGES}" ] && MY_REPOSITORY_IMAGES="${SI_REPOSITORY_IMAGES}"
+[ -z "${MY_PULL_EXCLUDE_FILE}" ] && MY_PULL_EXCLUDE_FILE="${SI_PULL_EXCLUDE_FILE}"
+[ -z "${MY_PULL_FILESYSTEMS}" ] && MY_PULL_FILESYSTEMS="${SI_PULL_FILESYSTEMS}"
+[ -z "${MY_SOURCE_PORT}" ] && MY_SOURCE_PORT="${SI_SOURCE_PORT}"
+# ... default
+[ -z "${MY_REPOSITORY_IMAGES}" ] && MY_REPOSITORY_IMAGES='/var/lib/simple-imager/images'
+[ -z "${MY_PULL_EXCLUDE_FILE}" ] && MY_PULL_EXCLUDE_FILE='/etc/simple-imager/si_pull.exclude'
+[ -z "${MY_PULL_FILESYSTEMS}" ] && MY_PULL_FILESYSTEMS='vfat ext2 ext3 ext4 xfs'
+[ -z "${MY_SOURCE_PORT}" ] && MY_SOURCE_PORT='873'
+# ... clean-up
+MY_REPOSITORY_IMAGES="${MY_REPOSITORY_IMAGES%%/}"
+MY_PULL_IMAGE="${MY_PULL_IMAGE%%/}"
+
+
+## Check
+[ ! -d "${MY_REPOSITORY_IMAGES}" ] && echo "ERROR: Missing/invalid images repository directory (${MY_REPOSITORY_IMAGES})" >&2 && exit 1
+[ -z "${MY_PULL_IMAGE}" ] && echo "ERROR: Missing/empty <image-name> argument" >&2 && exit 1
+[ -z "${MY_SOURCE_HOST}" ] && echo "ERROR: Missing/empty <source-host> argument" >&2 && exit 1
+[ -z "$(which rsync)" ] && echo "ERROR: Missing 'rsync' executable" >&2 && exit 1
+
+
+## Parameters (cont'd)
+MY_REPOSITORY_IMAGE="${MY_REPOSITORY_IMAGES}/${MY_PULL_IMAGE}"
+if [ ! -d "${MY_REPOSITORY_IMAGE}" ]; then
+  mkdir "${MY_REPOSITORY_IMAGE}" || exit 1
+fi
+
+
+## Check (cont'd)
+cat << EOF
+INFO: About to retrieve the image from the following source host:
+      SOURCE_HOST: ....... ${MY_SOURCE_HOST}:${MY_SOURCE_PORT}
+      REPOSITORY_IMAGE: .. ${MY_REPOSITORY_IMAGE}
+
+PRESS <ENTER> TO PROCEED OR <CTRL+C> TO ABORT...
+
+EOF
+read
+
+
+## Image retrieval
+
+# Mounts
+echo 'INFO: Retrieving source host mounts...'
+MY_SOURCE_MOUNT="$(mktemp --suffix=.mount)" || exit 1
+trap "rm -f '${MY_SOURCE_MOUNT}'" EXIT
+rsync \
+ -a \
+ --numeric-ids \
+ rsync://${MY_SOURCE_HOST}:${MY_SOURCE_PORT}/si_source/var/run/si_source.mount "${MY_SOURCE_MOUNT}" \
+|| exit 1
+
+# Exclude file
+MY_PULL_EXCLUDE_TEMP="$(mktemp --suffix=.exclude)" || exit 1
+trap "rm -f '${MY_SOURCE_MOUNT}' '${MY_PULL_EXCLUDE_TEMP}'" EXIT
+# ... configuration
+echo "## Source: ${MY_PULL_EXCLUDE_FILE}" >> "${MY_PULL_EXCLUDE_TEMP}"
+echo >> "${MY_PULL_EXCLUDE_TEMP}"
+cat "${MY_PULL_EXCLUDE_FILE}" >> "${MY_PULL_EXCLUDE_TEMP}"
+echo >> "${MY_PULL_EXCLUDE_TEMP}"
+# ... filesystems
+echo "## Source: rsync://${MY_SOURCE_HOST}:${MY_SOURCE_PORT}/si_source/run/si_source.mount" >> "${MY_PULL_EXCLUDE_TEMP}"
+echo >> "${MY_PULL_EXCLUDE_TEMP}"
+cat "${MY_SOURCE_MOUNT}" | while read source _on_ mountpoint _type_ filesystem _options_; do
+  [[ "${filesystem}" =~ ^(${MY_PULL_FILESYSTEMS// /|})$ ]] && continue
+  echo "${mountpoint}/*" >> "${MY_PULL_EXCLUDE_TEMP}"
+done
+echo >> "${MY_PULL_EXCLUDE_TEMP}"
+
+# Retrieve image
+echo 'INFO: Retrieving source host image...'
+rsync \
+  --verbose \
+  --archive --numeric-ids --hard-links --sparse \
+  --delete --force \
+  --exclude-from="${MY_PULL_EXCLUDE_TEMP}" --delete-excluded \
+ rsync://${MY_SOURCE_HOST}:${MY_SOURCE_PORT}/si_source/ "${MY_REPOSITORY_IMAGE}"/ \
+|| exit 1
+
+# Done
+cat << EOF
+INFO: Source host image sucessfully retrieved.
+
+PLEASE TERMINATE THE SOURCE HOST RSYNC DAEMON NOW!
+
+EOF
+

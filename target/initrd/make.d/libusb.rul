@@ -1,0 +1,73 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+LIBUSB_INFO			:= http://www.libusb.info/
+LIBUSB_VERSION		:= 1.0.21
+LIBUSB_VERSHORT		:= $(shell echo $(LIBUSB_VERSION) | sed 's/^\([^.]*\.[^.]*\)\..*$$/\1/')
+LIBUSB_TARBALL		:= libusb-$(LIBUSB_VERSION).tar.bz2
+LIBUSB_URL			:= https://downloads.sourceforge.net/project/libusb/libusb-$(LIBUSB_VERSHORT)/libusb-$(LIBUSB_VERSION)/$(LIBUSB_TARBALL)
+LIBUSB_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(LIBUSB_TARBALL)
+LIBUSB_DIR			:= $(INITRD_SOURCE_DIR)/libusb-$(LIBUSB_VERSION)
+
+
+## Targets
+.PHONY: libusb_download
+libusb_download: $(LIBUSB_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(LIBUSB_DOWNLOAD)
+
+.PHONY: libusb_configure
+libusb_configure: $(LIBUSB_DIR).configure
+
+.PHONY: libusb_build
+libusb_build: $(LIBUSB_DIR).build
+
+.PHONY: libusb_install
+libusb_install: $(LIBUSB_DIR).install
+INITRD_BUILD_ALL += $(LIBUSB_DIR).install
+
+.PHONY: libusb_clean
+libusb_clean: $(LIBUSB_DIR).clean
+
+
+## Recipes (deps: udev)
+$(LIBUSB_DIR).configure: $(LIBUSB_DIR).unpack
+	cd $(LIBUSB_DIR) \
+	&& CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include" \
+	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   ./configure \
+	     --prefix=/usr \
+	     --with-sysroot=$(INITRD_IMAGE_DIR) \
+	     --disable-silent-rules
+	touch $@
+
+$(LIBUSB_DIR).build: $(LIBUSB_DIR).configure
+	cd $(LIBUSB_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(LIBUSB_DIR).install: $(LIBUSB_DIR).build
+	cd $(LIBUSB_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	@echo "## Link headers file in more convenient location"
+	ln -sf libusb-1.0/libusb.h $(INITRD_IMAGE_DIR)/usr/include/.
+	touch $@
+
+$(LIBUSB_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(LIBUSB_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(LIBUSB_DOWNLOAD) -x
+	touch $@
+
+$(LIBUSB_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(LIBUSB_DIR)
+	$(DOWNLOAD) $(LIBUSB_TARBALL) $(LIBUSB_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(LIBUSB_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(LIBUSB_DIR)*
+

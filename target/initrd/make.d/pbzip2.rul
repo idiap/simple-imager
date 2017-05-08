@@ -1,0 +1,59 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+PBZIP2_INFO			:= http://compression.ca/pbzip2/
+PBZIP2_VERSION		:= 1.1.13
+PBZIP2_VERSHORT		:= $(shell echo $(PBZIP2_VERSION) | sed 's/^\([^.]*\.[^.]*\)\..*$$/\1/')
+PBZIP2_TARBALL		:= pbzip2-$(PBZIP2_VERSION).tar.gz
+PBZIP2_URL			:= https://launchpad.net/pbzip2/$(PBZIP2_VERSHORT)/$(PBZIP2_VERSION)/+download/$(PBZIP2_TARBALL)
+PBZIP2_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(PBZIP2_TARBALL)
+PBZIP2_DIR			:= $(INITRD_SOURCE_DIR)/pbzip2-$(PBZIP2_VERSION)
+
+
+## Targets
+.PHONY: pbzip2_download
+pbzip2_download: $(PBZIP2_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(PBZIP2_DOWNLOAD)
+
+.PHONY: pbzip2_build
+pbzip2_build: $(PBZIP2_DIR).build
+
+.PHONY: pbzip2_install
+pbzip2_install: $(PBZIP2_DIR).install
+INITRD_BUILD_ALL += $(PBZIP2_DIR).install
+
+.PHONY: pbzip2_clean
+pbzip2_clean: $(PBZIP2_DIR).clean
+
+
+## Recipes (deps: bzip2)
+$(PBZIP2_DIR).build: $(PBZIP2_DIR).unpack
+	cd $(PBZIP2_DIR) \
+	&& sed -i "s|CXXFLAGS\s*=\(.*\)$$|CXXFLAGS=-I$(INITRD_IMAGE_DIR)/usr/include|g;s|LDFLAGS\s*=\(.*\)$$|LDFLAGS=-L$(INITRD_IMAGE_DIR)/usr/lib \1|g" Makefile \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(PBZIP2_DIR).install: $(PBZIP2_DIR).build
+	cd $(PBZIP2_DIR) \
+	&& cp -p pbzip2 $(INITRD_IMAGE_DIR)/usr/bin/.
+	touch $@
+
+$(PBZIP2_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(PBZIP2_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(PBZIP2_DOWNLOAD) -x
+	touch $@
+
+$(PBZIP2_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(PBZIP2_DIR)
+	$(DOWNLOAD) $(PBZIP2_TARBALL) $(PBZIP2_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(PBZIP2_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(PBZIP2_DIR)*
+

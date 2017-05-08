@@ -1,0 +1,161 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Download functions
+
+# Progress
+
+# ... RSync
+_siDownloadProgressRSync() {
+  local message="${1}" speed="${2}" n="${3}" N="${4}"
+
+  local percent=$(( 100*${n}/${N} ))
+  siLogProgress "${message}" "${percent}" "${speed}"
+}
+
+# ... Aria2
+_siDownloadProgressAria2() {
+  local message="${1}" percent="${2}" speed="${3}"
+
+  siLogProgress "${message}" "${percent}" "${speed%%/*}/s"
+}
+
+# ... wait for download completion
+_siDownloadWait() {
+  local protocol="${1}" pid="${2}" log="${3}"
+
+  # Watch log file for progress and completion
+  touch "${log}"
+  case "${protocol}" in
+
+    'rsync')
+      tail --pid ${pid} -n 1 -f "${log}" | while read line; do
+        if [ -n "$(echo "${line}" | grep -F 'rsync error')" ]; then
+          return 1
+        elif [ -n "$(echo "${line}" | grep -F 'xfr#')" ]; then
+          _siDownloadProgressRSync "[Download:wait] Downloading..." $(echo "${line}" | sed 's|^.*\s\(\S*B/s\).*xfr#\([0-9]*\).*chk=[0-9]*/\([0-9]*\).*$|\1 \2 \3|')
+        elif [ -n "$(echo "${line}" | grep 'sent.*received.*bytes')" ]; then
+          break
+        fi
+      done
+      ;;
+
+    'bittorrent')
+      tail --pid ${pid} -n 1 -f "${log}" | while read line; do
+        if [ -n "$(echo "${line}" | grep -F '(ERR)')" ]; then
+          return 1
+        elif [ -n "$(echo "${line}" | grep -F ' ETA:')" ]; then
+          _siDownloadProgressAria2 "[Download:wait] Downloading..." $(echo "${line}" | sed 's|^.*(\(\S*%\)).*DL:\(\S*\).*$|\1 \2|')
+        elif [ -n "$(echo "${line}" | grep ' SEED(')" ]; then
+          break
+        fi
+      done
+      ;;
+
+  esac
+  return 0
+}
+
+# Image
+siDownloadImage() {
+  local image="${1}"
+  [ -z "${SI_VARIABLES}" ] && siLogError "[Download:image] Simple Imager environment is undefined (please call 'siVariablesLoad' beforehand)" && return 1
+  [ -z "${image}" ] && siLogError "[Download:image] Undefined image" && return 1
+
+  # Logging/Reporting
+  siMonitorDownload
+  siLogNotice "[Download:image] Downloading image: ${image} (${SI_SERVER_PROTOCOL_IMAGE})"
+  local pid log="${SI_LOG_DIR}/siDownloadImage.${image}.log"
+
+  # Download
+  case "${SI_SERVER_PROTOCOL_IMAGE}" in
+
+    'rsync')
+      [ ! -d "${SI_DISK_TARGET}" ] && siLogError "[Download:image] Missing/invalid target directory (${SI_DISK_TARGET})" && return 1
+      siShellCommand rsync -aHS --verbose --progress "rsync://${SI_SERVER}/${image}/" "${SI_DISK_TARGET}/" &> "${log}" &
+      local ret=$?; pid=$!
+      [ ${ret} -ne 0 -o ! -e /proc/${pid} ] && siLogError "[Download:image] Failed to start image download; see ${log}" && return 1
+      ;;
+
+    'bittorrent')
+      [ ! -d "${SI_DISK_STAGING_IMAGE}" ] && siLogError "[Download:image] Missing/invalid staging directory (${SI_DISK_STAGING_IMAGE})" && return 1
+      # Look for the appropriate tarball/torrent
+      local suffix torrent tarball
+      for suffix in '.xz' '.bz2' '.gz' ''; do
+        if [ -f "${SI_TORRENTS_DIR}/image-${image}.tar${suffix}.torrent" ]; then
+          torrent="image-${image}.tar${suffix}.torrent"
+          tarball="image-${image}.tar${suffix}"
+          break
+        fi
+      done
+      [ -z "${torrent}" ] && siLogError "[Download:image] No torrent found for image: ${image}"
+      siShellCommand aria2c --disable-ipv6 --enable-dht=false --human-readable=false --seed-ratio=0.0 --dir "${SI_DISK_STAGING_IMAGE}/" "${SI_TORRENTS_DIR}/${torrent}" &> "${log}" &
+      local ret=$?; pid=$!
+      [ ${ret} -ne 0 -o ! -e /proc/${pid} ] && siLogError "[Download:image] Failed to start image download; see ${log}" && return 1
+      siVariablesSave SI_IMAGE_TARBALL "${tarball}"
+      ;;
+
+    *)
+      siLogError "[Download:image] Invalid protocol (${SI_SERVER_PROTOCOL_IMAGE})" && return 1
+      ;;
+
+  esac
+  _siDownloadWait "${SI_SERVER_PROTOCOL_IMAGE}" ${pid} "${log}"
+  [ $? -ne 0 ] && siLogError "[Download:image] Image download failed (${image}); see ${log}" && return 1
+  return 0
+}
+
+# Override
+siDownloadOverride() {
+  local override="${1}"
+  [ -z "${SI_VARIABLES}" ] && siLogError "[Download:override] Simple Imager environment is undefined (please call 'siVariablesLoad' beforehand)" && return 1
+  [ -z "${override}" ] && siLogError "[Download:override] Undefined override" && return 1
+
+  # Logging/Reporting
+  siMonitorDownload
+  siLogNotice "[Download:override] Downloading override: ${override} (${SI_SERVER_PROTOCOL_OVERRIDES})"
+  local pid log="${SI_LOG_DIR}/siDownloadOverride.${override}.log"
+
+  # Download
+  case "${SI_SERVER_PROTOCOL_OVERRIDES}" in
+
+    'rsync')
+      [ ! -d "${SI_DISK_TARGET}" ] && siLogError "[Download:override] Missing/invalid target directory (${SI_DISK_TARGET})" && return 1
+      siShellCommand rsync -aHS --verbose --progress "rsync://${SI_SERVER}/overrides/${override}/" "${SI_DISK_TARGET}/" &> "${log}" &
+      local ret=$?; pid=$!
+      [ ${ret} -ne 0 -o ! -e /proc/${pid} ] && siLogError "[Download:override] Failed to start override download; see ${log}" && return 1
+      ;;
+
+    'bittorrent')
+      [ ! -d "${SI_DISK_STAGING_OVERRIDES}" ] && siLogError "[Download:override] Missing/invalid staging directory (${SI_DISK_STAGING_OVERRIDES})" && return 1
+      # Look for the appropriate tarball/torrent
+      local suffix torrent tarball
+      for suffix in '.xz' '.bz2' '.gz' ''; do
+        if [ -f "${SI_TORRENTS_DIR}/override-${override}.tar${suffix}.torrent" ]; then
+          torrent="override-${override}.tar${suffix}.torrent"
+          tarball="override-${override}.tar${suffix}"
+          break
+        fi
+      done
+      [ -z "${torrent}" ] && siLogError "[Download:override] No torrent found for override: ${override}"
+      siShellCommand aria2c --disable-ipv6 --enable-dht=false --human-readable=false --seed-ratio=0.0 --dir "${SI_DISK_STAGING_OVERRIDES}/" "${SI_TORRENTS_DIR}/${torrent}" &> "${log}" &
+      local ret=$?; pid=$!
+      [ ${ret} -ne 0 -o ! -e /proc/${pid} ] && siLogError "[Download:override] Failed to start override download; see ${log}" && return 1
+      siVariablesSave SI_OVERRIDE_TARBALL "${tarball}"
+      ;;
+
+    *)
+      siLogError "[Download:override] Invalid protocol (${SI_SERVER_PROTOCOL_OVERRIDES})" && return 1
+      ;;
+
+  esac
+  _siDownloadWait "${SI_SERVER_PROTOCOL_OVERRIDES}" ${pid} "${log}"
+  [ $? -ne 0 ] && siLogError "[Download:override] Override download failed (${override}); see ${log}" && return 1
+  return 0
+}
+

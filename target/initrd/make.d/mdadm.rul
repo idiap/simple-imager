@@ -1,0 +1,57 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+MDADM_INFO			:= http://www.kernel.org/pub/linux/utils/raid/mdadm/
+MDADM_VERSION		:= 4.0
+MDADM_TARBALL		:= mdadm-$(MDADM_VERSION).tar.xz
+MDADM_URL			:= https://www.kernel.org/pub/linux/utils/raid/mdadm/$(MDADM_TARBALL)
+MDADM_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(MDADM_TARBALL)
+MDADM_DIR			:= $(INITRD_SOURCE_DIR)/mdadm-$(MDADM_VERSION)
+
+
+## Targets
+.PHONY: mdadm_download
+mdadm_download: $(MDADM_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(MDADM_DOWNLOAD)
+
+.PHONY: mdadm_build
+mdadm_build: $(MDADM_DIR).build
+
+.PHONY: mdadm_install
+mdadm_install: $(MDADM_DIR).install
+INITRD_BUILD_ALL += $(MDADM_DIR).install
+
+.PHONY: mdadm_clean
+mdadm_clean: $(MDADM_DIR).clean
+
+
+## Recipes
+$(MDADM_DIR).build: $(MDADM_DIR).unpack
+	cd $(MDADM_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(MDADM_DIR).install: $(MDADM_DIR).build
+	cd $(MDADM_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(MDADM_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(MDADM_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(MDADM_DOWNLOAD) -x
+	touch $@
+
+$(MDADM_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(MDADM_DIR)
+	$(DOWNLOAD) $(MDADM_TARBALL) $(MDADM_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(MDADM_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(MDADM_DIR)*
+

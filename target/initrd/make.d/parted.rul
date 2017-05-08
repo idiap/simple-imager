@@ -1,0 +1,75 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+PARTED_INFO			:= http://www.gnu.org/software/parted/index.shtml
+PARTED_VERSION		:= 3.2
+PARTED_TARBALL		:= parted-$(PARTED_VERSION).tar.xz
+PARTED_URL			:= http://ftp.gnu.org/gnu/parted/$(PARTED_TARBALL)
+PARTED_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(PARTED_TARBALL)
+PARTED_DIR			:= $(INITRD_SOURCE_DIR)/parted-$(PARTED_VERSION)
+
+
+## Targets
+.PHONY: parted_download
+parted_download: $(PARTED_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(PARTED_DOWNLOAD)
+
+.PHONY: parted_configure
+parted_configure: $(PARTED_DIR).configure
+
+.PHONY: parted_build
+parted_build: $(PARTED_DIR).build
+
+.PHONY: parted_install
+parted_install: $(PARTED_DIR).install
+INITRD_BUILD_ALL += $(PARTED_DIR).install
+
+.PHONY: parted_clean
+parted_clean: $(PARTED_DIR).clean
+
+
+## Recipes (deps: readline, linutil, e2fsprogs, lvm)
+$(PARTED_DIR).configure: $(PARTED_DIR).unpack
+	cd $(PARTED_DIR) \
+	&& CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include" \
+	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   ./configure \
+	     --prefix=/usr \
+	     --with-sysroot=$(INITRD_IMAGE_DIR) \
+	     --with-readline \
+	     --disable-debug \
+	     --disable-nls \
+	     --disable-rpath \
+	     --disable-selinux \
+	     --disable-silent-rules
+	touch $@
+
+$(PARTED_DIR).build: $(PARTED_DIR).configure
+	cd $(PARTED_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(PARTED_DIR).install: $(PARTED_DIR).build
+	cd $(PARTED_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(PARTED_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(PARTED_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(PARTED_DOWNLOAD) -x
+	touch $@
+
+$(PARTED_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(PARTED_DIR)
+	$(DOWNLOAD) $(PARTED_TARBALL) $(PARTED_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(PARTED_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(PARTED_DIR)*
+

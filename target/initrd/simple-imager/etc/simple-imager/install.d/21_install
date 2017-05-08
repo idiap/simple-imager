@@ -1,0 +1,35 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Install (launch installation script)
+siPrintSection 'INSTALLATION [si_install:install]'
+siMonitorStart
+siLogInfo "[si_install:install] Starting installation"
+
+# Initialize installation
+siPrintHeader 'Initialization'
+siLogNotice "[si_install:install] Initializing installation"
+siTargetInit
+[ $? -ne 0 ] && siLogError '[si_install:install] Failed to initialize installation' && siConsoleError
+siLogInfo '[si_install:install] Installation initialized'
+siPrintConfirmOptional 'Done with initializing installation; proceed ?'
+
+# Execute pre-installation script(s)
+# (delegate to the actual installation script; see below)
+
+# Execute installation script
+siPrintHeader 'Installation Script'
+siLogNotice "[si_install:install] Executing installation script"
+siTargetInstall
+[ $? -ne 0 ] && siLogError '[si_install:install] Failed to execute installation script' && siConsoleError
+siLogInfo '[si_install:install] Installation script successfully executed'
+siPrintConfirmOptional 'Done with executing installation script; proceed ?'
+
+# Execute  post-installation script(s)
+# (delegate to the actual installation script; see above)
+

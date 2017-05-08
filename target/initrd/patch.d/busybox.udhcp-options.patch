@@ -1,0 +1,36 @@
+diff -urN busybox-1.26.2.orig/networking/udhcp/common.c busybox-1.26.2/networking/udhcp/common.c
+--- busybox-1.26.2.orig/networking/udhcp/common.c	2016-12-10 18:46:36.000000000 +0100
++++ busybox-1.26.2/networking/udhcp/common.c	2017-04-07 07:40:34.086795790 +0200
+@@ -64,6 +64,9 @@
+ #endif
+ 	{ OPTION_STRING                           , 0xd1 }, /* DHCP_PXE_CONF_FILE */
+ 	{ OPTION_STRING                           , 0xd2 }, /* DHCP_PXE_PATH_PREFIX */
++	{ OPTION_STRING               | OPTION_REQ, 0xe1 }, /* DHCP_SI_SERVER */
++	{ OPTION_STRING               | OPTION_REQ, 0xe2 }, /* DHCP_SI_MONITOR */
++	{ OPTION_STRING               | OPTION_REQ, 0xe3 }, /* DHCP_SI_SYSLOG */
+ 	{ OPTION_6RD                              , 0xd4 }, /* DHCP_6RD           */
+ 	{ OPTION_STATIC_ROUTES | OPTION_LIST      , 0xf9 }, /* DHCP_MS_STATIC_ROUTES */
+ 	{ OPTION_STRING                           , 0xfc }, /* DHCP_WPAD          */
+@@ -132,6 +135,9 @@
+ #endif
+ 	"pxeconffile" "\0" /* DHCP_PXE_CONF_FILE  */
+ 	"pxepathprefix" "\0" /* DHCP_PXE_PATH_PREFIX  */
++	"siserver" "\0" /* DHCP_SI_SERVER  */
++	"simonitor" "\0" /* DHCP_SI_MONITOR  */
++	"sisyslog" "\0" /* DHCP_SI_SYSLOG  */
+ 	"ip6rd" "\0"       /* DHCP_6RD            */
+ 	"msstaticroutes""\0"/* DHCP_MS_STATIC_ROUTES */
+ 	"wpad" "\0"        /* DHCP_WPAD           */
+diff -urN busybox-1.26.2.orig/networking/udhcp/common.h busybox-1.26.2/networking/udhcp/common.h
+--- busybox-1.26.2.orig/networking/udhcp/common.h	2016-09-27 18:53:50.000000000 +0200
++++ busybox-1.26.2/networking/udhcp/common.h	2017-04-07 07:36:26.738789950 +0200
+@@ -154,6 +154,9 @@
+ //#define DHCP_VLAN_PRIORITY    0x85 /* 802.1Q VLAN priority */
+ //#define DHCP_PXE_CONF_FILE    0xd1 /* RFC 5071 Configuration File */
+ //#define DHCP_PXE_PATH_PREFIX  0xd2 /* RFC 5071 Configuration File */
++//#define DHCP_SI_SERVER        0xe1 /* Simple Imager server; "<hostname>[:<port>][!<protocol>][!<protocol>]" */
++//#define DHCP_SI_MONITOR       0xe2 /* Simple Imager monitor; "{<hostname>[:<port>]|<url>}[!<protocol>]" */
++//#define DHCP_SI_SYSLOG        0xe3 /* Syslog (RFC 3164) server; "<hostname>[:<port>]" */
+ //#define DHCP_MS_STATIC_ROUTES 0xf9 /* Microsoft's pre-RFC 3442 code for 0x79? */
+ //#define DHCP_WPAD             0xfc /* MSIE's Web Proxy Autodiscovery Protocol */
+ #define DHCP_END                0xff

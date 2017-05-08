@@ -1,0 +1,26 @@
+#!/bin/sh
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Load Simple Imager resources
+
+# Environment
+. /etc/simple-imager/environment
+
+# Variables
+siVariablesLoad
+
+
+## Set temporary directories permissions
+siLogNotice "[${0##*/}] Setting temporary directories permissions"
+siShellCommand chmod a+rwx,o+t "${SI_DISK_TARGET}/tmp" "${SI_DISK_TARGET}/var/tmp"
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to set temporary directories permissions" && exit 1
+siLogInfo "[${0##*/}] Temporary directories permissions set"
+
+# Done
+exit 0
+

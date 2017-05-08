@@ -1,0 +1,22 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Monitoring status: post-install
+siPrintSection "Post-Installation"
+siMonitorPostInstall
+
+
+## Execute post-installation scripts
+siPrintHeader "Executing Post-Installation Script(s)"
+siTargetPostInstall
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to execute post-installation script(s)" && siConsoleError
+
+# Done
+siLogInfo "[${0##*/}] Done with executing post-installation script(s)"
+siPrintConfirmOptional "Done with executing post-installation script(s); proceed ?"
+

@@ -1,0 +1,76 @@
+#!/bin/bash
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Usage
+[ $# -lt 3 -o "${1##*-}" == 'help' ] && cat << EOF && exit 1
+USAGE: ${0##*/} <action> <arguments> ...
+
+SYNOPSIS:
+  This is a sample Simple Imager monitoring hook.
+
+  Hooks are executed by the monitoring daemon when their *name* match the
+  following installation *steps*, with <action> being (status) 'change' or
+  'update', and *<arguments>* being:
+ 
+    init: <mac-address> <ip-address> <hostname> <message>
+
+      When the installation environment initializes
+ 
+    start: <mac-address> <ip-address> <hostname> <message>
+
+      When the installation process starts
+ 
+    pre-install: <mac-address> <ip-address> <hostname> <message>
+
+      Before the image is downloaded and installed
+      (e.g. while disk are being partitioned/formatted)
+
+    download: <mac-address> <ip-address> <hostname> <message> <progress[%]> <speed[kB]>
+    
+      While the image is being downloaded
+
+    install: <mac-address> <ip-address> <hostname> <message>
+
+      While the image is being installed (unpacked)
+ 
+    post-install: <mac-address> <ip-address> <hostname> <message>
+
+      After the image has been downloaded and installed
+      (e.g. while target configuration is being overriden/finalized) 
+
+    complete: <mac-address> <ip-address> <hostname> <message>
+
+      When the installation is complete
+
+    error: <mac-address> <ip-address> <hostname> <message>
+
+      When an error occured during the installation
+
+  Hooks that are *not executable* (chmod u+x) are *ignored*.
+EOF
+
+# Arguments
+SI_STATUS="${0##*/}"
+SI_ACTION="${1}"
+SI_MACADDR="${2}"
+SI_IPADDR="${3}"
+SI_HOSTNAME="${4}"
+SI_MESSAGE="${5}"
+case "${SI_STATUS}" in
+  download)
+    SI_PROGRESS="${6}"
+    SI_SPEED="${7}"
+    ;;
+  error)
+esac
+
+
+## Hook
+#  (stderr output will be catched and reported by the monitor service)
+echo "HOOK: MAC=${SI_MACADDR}, IP=${SI_IPADDR}, Hostname=${SI_HOSTNAME}, Status=${SI_STATUS}, Message=${SI_MESSAGE:-n/a}, Progress=${SI_PROGRESS:-n/a}, Speed=${SI_SPEED:-n/a}" >&2
+

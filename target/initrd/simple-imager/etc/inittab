@@ -1,0 +1,16 @@
+## Simple Imager
+#  Busybox init configuration
+#  REF: https://git.busybox.net/busybox/tree/examples/inittab
+
+# System initialization
+::sysinit:/usr/bin/si_init
+
+# NOTE: Give the installer a controlling TTY ('-' prefix) to allow <CTRL+C>
+::once:-/usr/bin/script -q -c /usr/bin/si_install -f /var/log/si_install.log
+tty2::askfirst:/usr/bin/login -f root
+tty3::askfirst:/usr/bin/login -f root
+tty4::once:/usr/bin/tail -n 1000 -f /var/log/si_install.log
+
+# Other magic
+::ctrlaltdel:/sbin/reboot
+

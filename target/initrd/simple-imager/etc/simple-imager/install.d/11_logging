@@ -1,0 +1,47 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Logging setup
+siPrintSection 'LOGGING SETUP [si_install:logging]'
+siLogInfo '[si_install:logging] Logging setup'
+
+# Syslog
+siPrintHeader 'Syslog'
+if [ -n "${SI_SYSLOG}" ]; then
+  siShellCommand syslogd -S -L -R ${SI_SYSLOG}
+else
+  siShellCommand syslogd -S
+fi
+if [ $? -ne 0 ]; then
+  siLogWarning '[si_install:logging] Failed to start syslog (syslogd)'
+else
+  siLogInfo '[si_install:logging] Syslog (syslogd) started'
+fi
+
+# Kernel log
+siPrintHeader 'Kernel'
+siShellCommand klogd -c 2
+if [ $? -ne 0 ]; then
+  siLogWarning '[si_install:logging] Failed to start kernel logging (klogd)'
+else
+  siLogInfo '[si_install:logging] Kernel logging (klogd) started'
+fi
+
+# Simple Imager monitor
+siPrintHeader 'Simple Imager monitor'
+siMonitorInit
+if [ $? -ne 0 ]; then
+  siLogWarning '[si_install:logging] Failed to start Simple Imager monitoring'
+else
+  siLogInfo '[si_install:logging] Simple Imager monitoring started'
+fi
+
+# Done
+siPrintHeader 'Done'
+siLogInfo '[si_install:logging] Done with logging setup'
+

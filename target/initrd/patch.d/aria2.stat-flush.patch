@@ -1,0 +1,10 @@
+--- aria2-1.31.0.orig/src/ConsoleStatCalc.cc	2017-04-05 15:24:13.040004272 +0200
++++ aria2-1.31.0/src/ConsoleStatCalc.cc	2017-04-05 15:26:31.336021928 +0200
+@@ -399,6 +399,7 @@
+     auto str = o.str(false);
+     global::cout()->write(str.c_str());
+     global::cout()->write("\n");
++    global::cout()->flush();
+   }
+ }
+ 

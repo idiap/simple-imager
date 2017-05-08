@@ -1,0 +1,104 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables management functions
+
+# Initialize variables
+siVariablesInit() {
+  cat > "${SI_VARIABLES_FILE}" << EOF
+## Host
+HOSTNAME='${HOSTNAME:=%DHCP&}'
+DOMAINNAME='${DOMAINNAME:=%DHCP%}'
+
+## Simple Imager
+SI_VARIABLES='yes'
+
+# Server
+SI_SERVER='${SI_SERVER:=%DHCP%}'
+SI_SERVER_PROTOCOL='${SI_SERVER_PROTOCOL:=%AUTO%}'
+SI_SERVER_PROTOCOL_IMAGE='${SI_SERVER_PROTOCOL_IMAGE:=%INHERIT%}'
+SI_SERVER_PROTOCOL_OVERRIDES='${SI_SERVER_PROTOCOL_OVERRIDES:=%INHERIT%}'
+
+# Monitor
+SI_MONITOR='${SI_MONITOR:=%DHCP%}'
+SI_MONITOR_PROTOCOL='${SI_MONITOR_PROTOCOL:=%AUTO%}'
+
+# Syslog
+SI_SYSLOG='${SI_SYSLOG:=%DHCP%}'
+
+# Target
+# ... logging/debugging
+SI_CONSOLE_LEVEL=${SI_CONSOLE_LEVEL:=3}
+SI_LOGFILE_LEVEL=${SI_LOGFILE_LEVEL:=5}
+SI_SYSLOG_LEVEL=${SI_SYSLOG_LEVEL:=2}
+SI_MONITOR_LEVEL=${SI_MONITOR_LEVEL:=3}
+SI_LOG_PROGRESS='${SI_LOG_PROGRESS:=yes}'
+SI_LOG_VERBOSE='${SI_LOG_VERBOSE:=no}'
+SI_CONFIRM='${SI_CONFIRM:=no}'
+SI_FORCE='${SI_FORCE:=no}'
+# ... installation
+SI_GROUP='${SI_GROUP:=%AUTO%}'
+SI_IMAGE='${SI_IMAGE:=%AUTO%}'
+SI_OVERRIDES='${SI_OVERRIDES:=%AUTO%}'
+SI_SCRIPT='${SI_SCRIPT:=%AUTO%}'
+# ... network
+SI_NET_UP='no'
+SI_NET_INIT='dhcp'
+SI_NET_DEV='${SI_NET_DEV:=%AUTO%}'
+SI_NET_ADDR='${SI_NET_ADDR:=%DHCP%}'
+SI_NET_MASK='${SI_NET_MASK:=%DHCP%}'
+SI_NET_BCAST='${SI_NET_BCAST:=%DHCP%}'
+SI_NET_GW='${SI_NET_GW:=%DHCP%}'
+SI_NET_DNS='${SI_NET_DNS:=%DHCP%}'
+SI_NET_NTP='${SI_NET_NTP:=%DHCP%}'
+# ... disk
+SI_DISK_DEV='${SI_DISK_DEV:=%AUTO%}'
+SI_DISK_PART='${SI_DISK_PART:=%AUTO%}'
+SI_DISK_WIPE='${SI_DISK_WIPE:=%AUTO%}'
+SI_DISK_TARGET='${SI_DISK_TARGET:=%AUTO%}'
+SI_DISK_STAGING='${SI_DISK_STAGING:=%AUTO%}'
+SI_DISK_STAGING_IMAGE='${SI_DISK_STAGING_IMAGE:=%INHERIT%}'
+SI_DISK_STAGING_OVERRIDES='${SI_DISK_STAGING_OVERRIDES:=%INHERIT%}'
+# ... finalization
+SI_REBOOT_DELAY=0
+EOF
+}
+
+# Save variable
+siVariablesSave() {
+  local name="${1}" value="${2}"
+
+  sed -i "/^\s*${name}\s*=/d" "${SI_VARIABLES_FILE}"
+  if [ -z "${value//[0-9]/}" ]; then
+    echo "${name}=${value}" >> "${SI_VARIABLES_FILE}"
+    eval "${name}=${value}"
+  else
+    echo "${name}='${value}'" >> "${SI_VARIABLES_FILE}"
+    eval "${name}='${value}'"
+  fi
+}
+
+# Parse boot (kernel) parameters into variables
+siVariablesSaveBoot() {
+  cat /proc/cmdline | tr ' ' '\n' | grep -E '^[_A-Z0-9]*=' | sed 's/=/ /' | while read name value; do
+    siVariablesSave "${name}" "${value}"
+  done
+  # Inheritance
+  [ "${SI_SERVER_PROTOCOL_IMAGE}" == '%INHERIT%' ] && siVariablesSave SI_SERVER_PROTOCOL_IMAGE "${SI_SERVER_PROTOCOL}"
+  [ "${SI_SERVER_PROTOCOL_OVERRIDES}" == '%INHERIT%' ] && siVariablesSave SI_SERVER_PROTOCOL_OVERRIDES "${SI_SERVER_PROTOCOL}"
+  [ "${SI_DISK_STAGING_IMAGE}" == '%INHERIT%' ] && siVariablesSave SI_DISK_STAGING_IMAGE "${SI_DISK_STAGING}"
+  [ "${SI_DISK_STAGING_OVERRIDES}" == '%INHERIT%' ] && siVariablesSave SI_DISK_STAGING_OVERRIDES "${SI_DISK_STAGING}"
+}
+
+# Load variables
+siVariablesLoad() {
+  local name="${1}"
+
+  [ -z "${name}" ] && . "${SI_VARIABLES_FILE}" || eval "$(grep "^\s*${name}\s*=" "${SI_VARIABLES_FILE}")"
+}
+

@@ -1,0 +1,23 @@
+Simple Imager - Installation Monitoring Service
+***********************************************
+
+The Simple Imager monitor service allows target hosts to report their
+installation progress and status.
+
+It differs *entirely* from its SystemImager ancestor:
+
+* While the SystemImager "legacy" protocol is still supported, a new
+  RESTful API/daemon is now provided and preferred.
+
+* Only installation progress and status are monitored; information about
+  target hardware, kernel, etc. is entirely discarded.
+
+* Installation progress and status data are stored into a SQLite3 database:
+  see the /var/lib/system-imager/si_monitor.sqlite file.
+  This database can be readily queried with ad-hoc (external) utilities;
+  NO such utilities are provided by Simple Imager itself.
+
+* Additional processing is dedicated to user-provided hooks (scripts):
+  see /etc/simple-imager/si_monitor.hooks.d/SAMPLE for an example;
+  NO "internal" processing is achieved by Simple Imager itself.
+

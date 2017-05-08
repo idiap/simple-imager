@@ -1,0 +1,28 @@
+#!/bin/sh
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Load Simple Imager resources
+
+# Environment
+. /etc/simple-imager/environment
+
+# Variables
+siVariablesLoad
+
+
+## Delete history
+
+# bash
+siLogNotice "[${0##*/}] Deleting bash history (/root/.bash_history)"
+siShellCommand rm -f "${SI_DISK_TARGET}/root/.bash_history"
+[ $? -ne 0 ] && siLogWarning "[${0##*/}] Failed to delete bash history (/root/.bash_history)" && exit 0
+siLogInfo "[${0##*/}] Bash history deleted (/root/.bash_history)"
+
+# Done
+exit 0
+

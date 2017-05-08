@@ -1,0 +1,68 @@
+Simple Imager - Target Installation Environment
+***********************************************
+(please see the README.environment file beforehand)
+
+
+Simple Imager Installation Scripts
+==================================
+
+The actual operations required to carry out a target installation are stored
+in Simple Imager target installation scripts, which are split in three
+categories:
+ - pre-installation script(s)
+ - actual installation script
+ - post-installation script(s)
+
+
+Actual Installation Script
+--------------------------
+The actual installation script is the one script performing the installation.
+
+There can be only *one* actual installation script (for a given target instal-
+lation). Its name may be specified by the user (SI_SCRIPT) or automatically
+detected based on the following naming pattern (which is tested in the order
+given below):
+
+  H:<hostname> to match a given host (HOSTNAME)
+  S:<serie>    to match a given host serie (SI_HOSTSERIE)
+  G:<group>    to match a given installation group (SI_GROUP)
+  I:<image>    to match a given image (SI_IMAGE)
+  A:all        to match all targets
+
+It will be automatically called when the installation environment is booted
+(using the siTargetInstall function).
+
+
+Pre- and Post-Installation Script(s)
+------------------------------------
+Pre- and post-installation script(s) are to be executed respectively before
+and after the actual installation takes place, preferably by calling the
+corresponding siTarget* functions in the actual installation script:
+
+  siTargetPreInstall and siTargetPostInstall
+
+They are located in the corresponding ./pre-install.d or ./post-install.d
+directory. There can be many pre-/post-installation script(s) (for a given
+target installation), depending on the name-match rules decribed further below.
+Thus, they MUST be named according to the following pattern:
+
+  <index>-<class>:<name>
+
+where:
+
+  <index> ought to be a numerical value which will be used to sort the
+  scripts execution order
+
+  <class> MUST match one of the following patterns, which are used to filter
+  the script(s) to be executed:
+    H:<hostname> to match a given host (HOSTNAME)
+    S:<serie>    to match a given host serie (SI_HOSTSERIE)
+    G:<group>    to match a given installation group (SI_GROUP)
+    I:<image>    to match a given image (SI_IMAGE)
+    A:all        to match all targets
+
+  <name> can be any alpha-numerical (descriptive) value
+
+Scripts that are not executable (chmod ...) will be ignored, with a corres-
+ponding warning in the installation log.
+

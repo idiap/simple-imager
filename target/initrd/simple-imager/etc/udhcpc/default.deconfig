@@ -1,0 +1,18 @@
+#!/bin/sh
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## UDHCP-client deconfig(ure)
+
+# Resolver
+if [ -n "$(which resolvconf)" ]; then 
+  resolvconf -d "${interface}.udhcpc"
+fi
+
+# Interface
+ifconfig ${interface} 0.0.0.0
+

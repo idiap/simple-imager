@@ -1,0 +1,53 @@
+#!/bin/bash
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Usage
+[ $# -lt 1 ] && cat << EOF && exit 1
+USAGE:
+  ${0##*/} <install-directory>
+
+SYNOPSIS:
+  Loop through binaries in <install-directory>/{bin,sbin,usr/bin,usr/sbin} and
+  copy the required (missing) libraries - based on 'ldd' output - from the build
+  host to <install-directory>/usr/lib.
+
+NOTE:
+  Ideally, all dependencies should be built from their own source and properly
+  installed in <install-directory>. But, given the installed environment may be
+  built for the same platform as the build host, exceptions to this rule may
+  exist and require dependencies to be copied from the build host.
+EOF
+
+# Arguments
+MY_INSTALL_DIR="${1%%/}"
+
+
+## Libraries
+
+# ... list unresolved dependencies
+declare -A library_deps
+for binary in $(find "${MY_INSTALL_DIR}/bin" "${MY_INSTALL_DIR}/sbin" "${MY_INSTALL_DIR}/usr/bin" "${MY_INSTALL_DIR}/usr/sbin" -type f); do
+  for library_path in $(ldd "${binary}" | awk '{print $3}' | grep '^/'); do
+    library_file="$(basename "${library_path}")"
+    [ -n "$(find "${MY_INSTALL_DIR}/lib" "${MY_INSTALL_DIR}/usr/lib" \( -type f -o -type l \) -name "${library_file}")" ] && continue
+    library_deps["${library_path}"]="${library_deps["${library_path}"]}${library_deps["${library_path}"]:+, }${binary##*/}"
+  done
+done
+# ... fix unresolved dependencies
+for library_path in ${!library_deps[@]}; do
+  library_file="$(basename "${library_path}")"
+  [ -n "$(find "${MY_INSTALL_DIR}/lib" "${MY_INSTALL_DIR}/usr/lib" \( -type f -o -type l \) -name "${library_file}")" ] && continue
+  library_dir="${MY_INSTALL_DIR}$(dirname "${library_path}")"
+  [ ! -d "${library_dir}" ] && mkdir -p -m 0755 "${library_dir}"
+  [ ! -d "${library_dir}" ] && echo "ERROR(${0##*/}): Failed to create library directory: ${library_dir}" >&2 && continue
+  cp "${library_path}" "${library_dir}/."
+  [ $? -ne 0 ] && echo "ERROR(${0##*/}): Failed to copy library: ${library_file} (${library_deps["${library_path}"]})" >&2 && continue
+  echo "INFO(${0##*/}): Library successfully copied: ${library_file} (${library_deps["${library_path}"]})"
+done
+

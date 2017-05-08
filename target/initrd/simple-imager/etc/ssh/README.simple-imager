@@ -1,0 +1,14 @@
+
+!!! WARNING !!! WARNING !!! WARNING !!! WARNING !!! WARNING !!! WARNING !!!
+
+    Default SSH host keys are provided here for your convenience.
+
+    Please replace them with your own keys for any critical application:
+      siNetworkSshdDelkeys
+      siNetworkSshdGenkeys
+
+    Before starting the SSH server in your installation script:
+      siNetworkSshdStart
+
+!!! WARNING !!! WARNING !!! WARNING !!! WARNING !!! WARNING !!! WARNING !!!
+

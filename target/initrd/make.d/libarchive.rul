@@ -1,0 +1,78 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+LIBARCHIVE_INFO		:= http://www.libarchive.org/
+LIBARCHIVE_VERSION	:= 3.3.1
+LIBARCHIVE_TARBALL	:= libarchive-$(LIBARCHIVE_VERSION).tar.gz
+LIBARCHIVE_URL		:= http://www.libarchive.org/downloads/$(LIBARCHIVE_TARBALL)
+LIBARCHIVE_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(LIBARCHIVE_TARBALL)
+LIBARCHIVE_DIR		:= $(INITRD_SOURCE_DIR)/libarchive-$(LIBARCHIVE_VERSION)
+
+
+## Targets
+.PHONY: libarchive_download
+libarchive_download: $(LIBARCHIVE_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(LIBARCHIVE_DOWNLOAD)
+
+.PHONY: libarchive_configure
+libarchive_configure: $(LIBARCHIVE_DIR).configure
+
+.PHONY: libarchive_build
+libarchive_build: $(LIBARCHIVE_DIR).build
+
+.PHONY: libarchive_install
+libarchive_install: $(LIBARCHIVE_DIR).install
+INITRD_BUILD_ALL += $(LIBARCHIVE_DIR).install
+
+.PHONY: libarchive_clean
+libarchive_clean: $(LIBARCHIVE_DIR).clean
+
+
+## Recipes (deps: zlib, openssl, bzip2, xz, libxml2)
+$(LIBARCHIVE_DIR).configure: $(LIBARCHIVE_DIR).unpack
+	cd $(LIBARCHIVE_DIR) \
+	&& CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include -I$(INITRD_IMAGE_DIR)/usr/include/lzma -I$(INITRD_IMAGE_DIR)/usr/include/libxml2" \
+	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   ./configure \
+	     --prefix=/usr \
+	     --without-lzmadec \
+	     --without-lz4 \
+	     --without-lzo2 \
+	     --without-nettle \
+	     --with-sysroot=$(INITRD_IMAGE_DIR) \
+	     --disable-bsdcat \
+	     --disable-bsdcpio \
+	     --disable-bsdtar \
+	     --disable-rpath \
+	     --disable-silent-rules
+	touch $@
+
+$(LIBARCHIVE_DIR).build: $(LIBARCHIVE_DIR).configure
+	cd $(LIBARCHIVE_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(LIBARCHIVE_DIR).install: $(LIBARCHIVE_DIR).build
+	cd $(LIBARCHIVE_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(LIBARCHIVE_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(LIBARCHIVE_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(LIBARCHIVE_DOWNLOAD) -x
+	touch $@
+
+$(LIBARCHIVE_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(LIBARCHIVE_DIR)
+	$(DOWNLOAD) $(LIBARCHIVE_TARBALL) $(LIBARCHIVE_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(LIBARCHIVE_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(LIBARCHIVE_DIR)*
+

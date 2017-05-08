@@ -1,0 +1,67 @@
+Simple Imager - Linux Imaging and Deployment Made Easy
+******************************************************
+
+Simple Imager is a set of tools allowing an imaging *server* to retrieve
+a copy of Linux reference hosts (*sources*) and allowing those *images*
+to be deployed to other *target* hosts by the mean of RSync or BitTorrent
+files download.
+
+Simple Imager is a heavily stripped-down, refactored, cleaned-up, Debian-
+centric, consolidated and hopefully thoroughly documented version of its two
+ancestor projects - namely SystemImager [1] and SALI [2] - motivated by their
+apparent defunct status (as of April 2017).
+
+Simple Imager consists of four different parts/sub-projects:
+ - the 'source' part, aimed at the "source" host (aka. "golden client" in
+   SystemImager stanza), allowing its "image" to be retrieved by the imaging
+   "server" (see below) via RSync.
+ - the 'server' part, aimed at the imaging "server", which "pulls" the
+   images from the various source hosts into its repository, "packs" the
+   content of those images into download-friendly tarballs and torrents,
+   and eventually allow them to be retrieved by "target" hosts (see below),
+   via RSync or BitTorrent.
+ - the 'target' part, aimed at "target" hosts that are installed by
+   network-booting into a dedicated light-weight (PXE-friendly) Linux
+   environment, in order to retrieve their attributed image from the imaging
+   server, along the configured/user-provided installation script.
+ - the 'monitor' part, ideally co-hosted on the imaging server, which allows
+   to keep track of ongoing target hosts installation and run ad-hoc hooks
+   (scripts) for each significant step (start, progress, error, etc.).
+
+Simple Imager aims at being as simple and light-weight as possible. Compared
+to its SystemImager ancestor, it lacks the following features:
+ - auto-retrieval of the Linux kernel (aka. UYOK in SystemImager stanza);
+   experienced has shown that a dedicated kernel and carefully tuned
+   Linux environment better serve the purpose at hand; this was addressed
+   by the SystemImager's BOEL and SALI projects in their time, and now by
+   the 'target' part/sub-project of Simple Imager.
+ - auto-generation of installation scripts, dependent on installed
+   System Configurator [3]; apart from the latter also being a defunct
+   project, this task is highly specific to the user preferences and
+   better left to her to deal with; sample installation scripts are
+   provided to get one started.
+ - XML-based configuration of target image and overrides; this is now
+   achieved using a 'genders' [4] file, which can easily be queried with
+   the ad-hoc tools (readily available as a Debian package).
+ - server network (PXE/DHCP/TFTP/etc.) boot environment; such a setup is
+   highly specific to the user environment and potentially already existing
+   for other purposes; PXE boot - be it legacy PC(BIOS) or (U)EFI - along
+   with the chosen DHCP/TFTP/etc. servers and bootloader(s) - SysLinux,
+   GRUB, etc. - MUST be setup independently.
+ - graphical installation (progress) monitoring; nice-to-have but not
+   worth the trouble; installation progress will be stored by Simple Imager
+   monitor into a SQLite database, which the user may query as he deems fit.
+
+The final objective is to provide a MUCH simpler imaging/deployment framework,
+delegating the most complex building blocks to existing projects, keeping
+only the minimum codebase required to achieve its purpose, and hopefully
+providing a product that is easier to maintain.
+
+
+References
+==========
+[1] http://systemimager.org
+[2] https://oss.trac.surfsara.nl/sali
+[3] https://sourceforge.net/projects/systemconfig/
+[4] https://github.com/chaos/genders
+

@@ -1,0 +1,44 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:       si_monitor
+# Required-Start: $remote_fs
+# Required-Stop:  $remote_fs
+# Default-Start:  2 3 4 5
+# Default-Stop:   0 1 6
+# Short-Description: Simple Imager monitor service
+### END INIT INFO
+
+SI_MONITOR=/usr/sbin/si_monitor
+
+. /lib/lsb/init-functions
+
+case "$1" in
+  start)
+    log_begin_msg "Starting Simple Imager monitor service..."
+    ${SI_MONITOR} start >/dev/null
+    log_end_msg $?
+    ;;
+  stop)
+    log_begin_msg "Stopping Simple Imager monitor service..."
+    ${SI_MONITOR} stop >/dev/null
+    log_end_msg $?
+    ;;
+  restart)
+    log_begin_msg "Restarting Simple Imager monitor service..."
+    ${SI_MONITOR} restart >/dev/null
+    log_end_msg $?
+    ;;
+  status)
+    ${SI_MONITOR} status
+    exit $?
+    ;;
+  force-reload|condrestart|reload)
+    exit 3
+    ;;
+    *)
+    exit 2
+    ;;
+esac
+
+exit 0
+

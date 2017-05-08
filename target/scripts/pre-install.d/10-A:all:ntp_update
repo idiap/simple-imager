@@ -1,0 +1,27 @@
+#!/bin/sh
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Load Simple Imager resources
+
+# Environment
+. /etc/simple-imager/environment
+
+# Variables
+siVariablesLoad
+
+
+## Update time
+
+# Query NTP server
+siNetworkNtpQuery
+[ $? -ne 0 ] && siLogWarning "[${0##*/}] Failed to query NTP server" && exit 0
+siLogInfo "[${0##*/}] NTP server queried (local time updated)"
+
+# Done
+exit 0
+

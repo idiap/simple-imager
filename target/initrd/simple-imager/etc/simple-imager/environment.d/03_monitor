@@ -1,0 +1,100 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Monitor (reporting) functions
+
+# Save (current) status
+# ... init
+siMonitorInit() {
+  siVariablesSave SI_MONITOR_STATUS 'init'
+  siMonitorLog
+}
+# ... start
+siMonitorStart() {
+  siVariablesSave SI_MONITOR_STATUS 'start'
+  siMonitorLog
+}
+# ... pre-install
+siMonitorPreInstall() {
+  siVariablesSave SI_MONITOR_STATUS 'pre-install'
+  siMonitorLog
+}
+# ... download
+siMonitorDownload() {
+  siVariablesSave SI_MONITOR_STATUS 'download'
+  siMonitorLog
+}
+# ... install
+siMonitorInstall() {
+  siVariablesSave SI_MONITOR_STATUS 'install'
+  siMonitorLog
+}
+# ... post-install
+siMonitorPostInstall() {
+  siVariablesSave SI_MONITOR_STATUS 'post-install'
+  siMonitorLog
+}
+# ... complete
+siMonitorComplete() {
+  siVariablesSave SI_MONITOR_STATUS 'complete'
+  siMonitorLog
+}
+# ... error
+siMonitorError() {
+  siVariablesSave SI_MONITOR_STATUS 'error'
+  siMonitorLog
+}
+
+# Log
+siMonitorLog() {
+  siMiscIsFalse "${SI_NET_UP}" && return
+  [ -z "${SI_MONITOR}" ] && return
+  local message="${1}" progress="${2}" speed="${3}"
+
+  # Protocol
+  local data status first_timestamp
+  if [ "${SI_MONITOR_PROTOCOL}" == 'restful' ]; then
+
+    # Data (JSON)
+    data="\"mac\":\"${SI_NET_MAC//\"/\\\"}\", \"status\":\"${SI_MONITOR_STATUS}\""
+    [ -n "${message}" ] && data="${data}, \"message\":\"${message//\"/\\\"}\""
+    [ -n "${progress}" ] && data="${data}, \"progress\":\"${progress//\"/\\\"}\""
+    [ -n "${speed}" ] && data="${data}, \"speed\":\"${speed//\"/\\\"}\""
+
+    # Send
+    local monitor="${SI_MONITOR//[.0-9]/}"
+    [ -z "${monitor}" ] && monitor="${SI_MONITOR}:8080/update" || monitor="${SI_MONITOR}" 
+    echo "$(date +'%Y-%d-%mT%H:%M:%S') MONITOR[restful]: curl -s -S -m 5 -X POST -H 'Content-Type: application/json' -d '{${data}}' '${monitor}'" >> "${SI_LOG_DIR}/siMonitorLog.log"
+    curl -s -S -m 5 -X POST -H 'Content-Type: application/json' -d "{${data}}" "${monitor}" >/dev/null 2>> "${SI_LOG_DIR}/siMonitorLog.log"
+
+  elif [ "${SI_MONITOR_PROTOCOL}" == 'legacy' ]; then
+
+    # Data (colon-separated)
+    [ -z "${progress}" ] && progress=0
+    case "${SI_MONITOR_STATUS}" in
+      'init') return;;
+      'start'|'pre-install') status=0; first_timestamp='on';;
+      'download') status=${progress};;
+      'install'|'post-install') status=$(( 200+${progress} ));;
+      'complete') status=300;;
+      'error') status=-1;;
+    esac
+    data="mac=${SI_NET_MAC//:/.}:status=${status}"
+    [ -n "${first_timestamp}" ] && data="${data}:first_timestamp=${first_timestamp}"
+    [ -n "${message}" ] && data="${data}:message=${message//:/^}"
+    [ -n "${speed}" ] && data="${data}:speed=${speed//:/}"
+
+    # Send
+    local monitor="${SI_MONITOR%:*}" port="${SI_MONITOR#*:}"
+    [ "${port}" == "${monitor}" ] && port='8181'
+    echo "$(date +'%Y-%d-%mT%H:%M:%S') MONITOR[legacy]: echo '${data}' | nc -w 5 '${monitor}' '${port}'" >> "${SI_LOG_DIR}/siMonitorLog.log"
+    echo "${data}" | nc -w 5 "${monitor}" "${port}" >/dev/null 2>> "${SI_LOG_DIR}/siMonitorLog.log"
+
+  fi
+}
+

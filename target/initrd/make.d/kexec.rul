@@ -1,0 +1,69 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+KEXEC_INFO			:= http://kernel.org/pub/linux/utils/kernel/kexec/
+KEXEC_VERSION		:= 2.0.14
+KEXEC_TARBALL		:= kexec-tools-$(KEXEC_VERSION).tar.xz
+KEXEC_URL			:= https://www.kernel.org/pub/linux/utils/kernel/kexec/$(KEXEC_TARBALL)
+KEXEC_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(KEXEC_TARBALL)
+KEXEC_DIR			:= $(INITRD_SOURCE_DIR)/kexec-tools-$(KEXEC_VERSION)
+
+
+## Targets
+.PHONY: kexec_download
+kexec_download: $(KEXEC_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(KEXEC_DOWNLOAD)
+
+.PHONY: kexec_configure
+kexec_configure: $(KEXEC_DIR).configure
+
+.PHONY: kexec_build
+kexec_build: $(KEXEC_DIR).build
+
+.PHONY: kexec_install
+kexec_install: $(KEXEC_DIR).install
+INITRD_BUILD_ALL += $(KEXEC_DIR).install
+
+.PHONY: kexec_clean
+kexec_clean: $(KEXEC_DIR).clean
+
+
+## Recipes
+$(KEXEC_DIR).configure: $(KEXEC_DIR).unpack
+	cd $(KEXEC_DIR) \
+	&& CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include" \
+	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   ./configure \
+	     --prefix=/usr \
+	     --without-xen
+	touch $@
+
+$(KEXEC_DIR).build: $(KEXEC_DIR).configure
+	cd $(KEXEC_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(KEXEC_DIR).install: $(KEXEC_DIR).build
+	cd $(KEXEC_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(KEXEC_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(KEXEC_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(KEXEC_DOWNLOAD) -x
+	touch $@
+
+$(KEXEC_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(KEXEC_DIR)
+	$(DOWNLOAD) $(KEXEC_TARBALL) $(KEXEC_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(KEXEC_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(KEXEC_DIR)*
+

@@ -1,0 +1,77 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+XZ_INFO				:= http://tukaani.org/xz/
+XZ_VERSION			:= 5.2.3
+XZ_TARBALL			:= xz-$(XZ_VERSION).tar.xz
+XZ_URL				:= http://tukaani.org/xz/$(XZ_TARBALL)
+XZ_DOWNLOAD			:= $(DOWNLOAD_DIR)/$(XZ_TARBALL)
+XZ_DIR				:= $(INITRD_SOURCE_DIR)/xz-$(XZ_VERSION)
+
+
+## Targets
+.PHONY: xz_download
+xz_download: $(XZ_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(XZ_DOWNLOAD)
+
+.PHONY: xz_configure
+xz_configure: $(XZ_DIR).configure
+
+.PHONY: xz_build
+xz_build: $(XZ_DIR).build
+
+.PHONY: xz_install
+xz_install: $(XZ_DIR).install
+INITRD_BUILD_ALL += $(XZ_DIR).install
+
+.PHONY: xz_clean
+xz_clean: $(XZ_DIR).clean
+
+
+## Recipes
+$(XZ_DIR).configure: $(XZ_DIR).unpack
+	cd $(XZ_DIR) \
+	&& CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include" \
+	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   ./configure \
+	     --prefix=/usr \
+	     --with-sysroot=$(INITRD_IMAGE_DIR) \
+	     --disable-doc \
+	     --disable-lzmadec \
+	     --disable-lzmainfo \
+	     --disable-nls \
+	     --disable-rpath \
+	     --disable-scripts \
+	     --disable-silent-rules \
+	     --disable-xzdec
+	touch $@
+
+$(XZ_DIR).build: $(XZ_DIR).configure
+	cd $(XZ_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(XZ_DIR).install: $(XZ_DIR).build
+	cd $(XZ_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(XZ_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(XZ_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(XZ_DOWNLOAD) -x
+	touch $@
+
+$(XZ_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(XZ_DIR)
+	$(DOWNLOAD) $(XZ_TARBALL) $(XZ_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(XZ_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(XZ_DIR)*
+

@@ -1,0 +1,22 @@
+Simple Imager - Installation Procedure
+**************************************
+
+Simple Imager is currently a Debian-centric endavor. As such, the sole supported
+installation method is via Debian packaging:
+
+* Switch to each sub-package directory (source, server, monitor, target)
+
+* Build the corresponding Debian package(s)
+
+  $ more BUILD  # if any
+
+  $ dpkg-buildpackage -us -uc -b
+
+* Clean-up the build tree
+
+  $ dpkg-buildpackage -T clean
+
+* Copy and install the needed packages
+
+  $ dpkg -i <package>.deb
+

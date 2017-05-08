@@ -1,0 +1,73 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+LVM_INFO			:= http://sources.redhat.com/lvm2/
+LVM_VERSION			:= 2.2.02.170
+LVM_TARBALL			:= LVM$(LVM_VERSION).tgz
+LVM_URL				:= ftp://sources.redhat.com/pub/lvm2/releases/$(LVM_TARBALL)
+LVM_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(LVM_TARBALL)
+LVM_DIR				:= $(INITRD_SOURCE_DIR)/LVM$(LVM_VERSION)
+
+
+## Targets
+.PHONY: lvm_download
+lvm_download: $(LVM_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(LVM_DOWNLOAD)
+
+.PHONY: lvm_configure
+lvm_configure: $(LVM_DIR).configure
+
+.PHONY: lvm_build
+lvm_build: $(LVM_DIR).build
+
+.PHONY: lvm_install
+lvm_install: $(LVM_DIR).install
+INITRD_BUILD_ALL += $(LVM_DIR).install
+
+.PHONY: lvm_clean
+lvm_clean: $(LVM_DIR).clean
+
+
+## Recipes (deps: readline, linutil, udev)
+$(LVM_DIR).configure: $(LVM_DIR).unpack
+	cd $(LVM_DIR) \
+	&& CFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include -L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   ./configure \
+	     --prefix=/usr \
+	     --enable-udev_rules \
+	     --enable-udev_sync \
+	     --disable-nls \
+	     --disable-selinux
+	touch $@
+
+$(LVM_DIR).build: $(LVM_DIR).configure
+	cd $(LVM_DIR) \
+	&& CFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include -L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(LVM_DIR).install: $(LVM_DIR).build
+	cd $(LVM_DIR) \
+	&& CFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include -L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(LVM_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(LVM_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(LVM_DOWNLOAD) -x
+	touch $@
+
+$(LVM_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(LVM_DIR)
+	$(DOWNLOAD) $(LVM_TARBALL) $(LVM_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(LVM_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(LVM_DIR)*
+

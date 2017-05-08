@@ -1,0 +1,332 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Select disk and partitions
+siPrintHeader "Selecting Target Disk and Partitions"
+
+# Device
+if [ -z "${SI_DISK_DEV}" -o "${SI_DISK_DEV}" == '%AUTO%' ]; then
+  if [ -e /dev/vda ]; then
+    siVariablesSave SI_DISK_DEV '/dev/vda'
+  else
+    siVariablesSave SI_DISK_DEV '/dev/sda'
+  fi
+elif [ "${SI_DISK_DEV:0:5}" != '/dev/' ]; then
+  siVariablesSave SI_DISK_DEV="/dev/${SI_DISK_DEV}"
+fi
+siLogDebug "[${0##*/}] Target disk: ${SI_DISK_DEV}"
+
+# Partitions
+if [ -e /sys/firmware/efi ]; then
+  siVariablesSave MY_PART_ESP "${SI_DISK_DEV}1"
+  siVariablesSave MY_PART_BOOT "${SI_DISK_DEV}2"
+  siVariablesSave MY_PART_LVM "${SI_DISK_DEV}3"
+else
+  siVariablesSave MY_PART_ESP ''
+  siVariablesSave MY_PART_BOOT "${SI_DISK_DEV}1"
+  siVariablesSave MY_PART_LVM "${SI_DISK_DEV}2"
+fi
+siLogDebug "[${0##*/}] (U)EFI system partition: ${MY_PART_ESP:-n/a}"
+siLogDebug "[${0##*/}] Boot partition: ${MY_PART_BOOT:-n/a}"
+siLogDebug "[${0##*/}] LVM (system+data) partition: ${MY_PART_LVM:-n/a}"
+
+# Size
+disk_size=$(parted -s ${SI_DISK_DEV} unit MB print | awk '/^Disk/ {print $3}' | sed 's/[^0-9]//g')
+[ -z "${disk_size}" ] && siLogError "[${0##*/}] Failed to retrieve disk size (${SI_DISK_DEV})" && siConsoleError
+siVariablesSave MY_DISK_SIZE "${disk_size}"
+siLogDebug "[${0##*/}] Disk size: ${MY_DISK_SIZE}MB"
+unset disk_size
+
+# Done
+siLogInfo "[${0##*/}] Done with selecting disk and partitions"
+siPrintConfirmOptional "Done with selecting disk and partitions; proceed ?"
+
+
+## Check disk status
+siPrintHeader "Checking Disk Status"
+
+# More than one disk
+siLogNotice "[${0##*/}] Checking for unexpected disk(s)"
+for disk_check in /dev/[hsv]d[b-z]; do
+  [ -e "${disk_check}" ] && siLogError "[${0##*/}] Unexpected disk detected (${disk_check})" && siConsoleError
+done
+unset disk_check
+
+# RAID devices
+siLogNotice "[${0##*/}] Checking for unexpected RAID setup"
+if [ -f /proc/mdstat ]; then
+  grep ^md /proc/mdstat >/dev/null 2>&1
+  [ $? -eq 0 ] && siLogError "[${0##*/}] Unexpected RAID setup detected" && siConsoleError
+fi
+
+# Mounted partitions
+siLogNotice "[${0##*/}] Checking for unexpected mounted partitions"
+mount | grep [hsv]d[a-z][1-9] 2>&1
+[ $? -eq 0 ] && siLogError "[${0##*/}] Unexpected mounted partition(s) detected" && siConsoleError
+
+# Wait for device to appear
+siLogNotice "[${0##*/}] Checking for target installation disk/device (${SI_DISK_DEV})"
+while [ ! -e ${SI_DISK_DEV} ]; do
+  siLogDebug "[${0##*/}] Waiting for ${SI_DISK_DEV} to appear..."
+  sleep 1
+done
+
+# Confirm dangerous actions
+if siMiscIsFalse "${SI_FORCE}"; then
+  if siMiscIsTrue "${SI_DISK_PART}"; then
+    siPrintConfirmRequired "The partition table and entire disk (ALL DATA) of '${SI_DISK_DEV}' will be WIPED !"
+  elif siMiscIsTrue "${SI_DISK_WIPE}"; then
+    siPrintConfirmRequired "The USER DATA partition of '${SI_DISK_DEV}' will be WIPED !"
+  fi
+fi
+
+# Done
+siLogInfo "[${0##*/}] Done with checking disk status"
+siPrintConfirmOptional "Done with checking disk status; proceed ?"
+
+
+## Partition disk
+siPrintHeader "Partitioning Disk (${SI_DISK_DEV})"
+if siMiscIsTrue "${SI_DISK_PART}"; then
+  siLogInfo "Partitioning disk (${SI_DISK_DEV})"
+
+  # Wipe the MBR (Master Boot Record)
+  siLogNotice "[${0##*/}] Wiping disk Master Boor Record (${SI_DISK_DEV})"
+  siShellCommand dd if=/dev/zero of=${SI_DISK_DEV} bs=1024 count=1
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to wipe disk Master Boor Record (${SI_DISK_DEV})" && siConsoleError
+
+  # Re-read the disk partition table
+  siLogNotice "[${0##*/}] Reading disk partition table (${SI_DISK_DEV})"
+  siShellCommand blockdev --rereadpt ${SI_DISK_DEV}
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed read partition table (${SI_DISK_DEV})" && siConsoleError
+
+  # Create disk partition table
+  siLogNotice "[${0##*/}] Creating disk partition table (${SI_DISK_DEV})"
+  if [ -n "${MY_PART_ESP}" ]; then
+    siShellCommand parted -s -- ${SI_DISK_DEV} mklabel gpt
+  else
+    siShellCommand parted -s -- ${SI_DISK_DEV} mklabel msdos
+  fi
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create disk partition table (${SI_DISK_DEV})" && siConsoleError
+
+  # Create partitions
+  last_mb=1
+
+  # /boot/efi (ESP)
+  if [ -n "${MY_PART_ESP}" ]; then
+    siLogNotice "[${0##*/}] Creating (U)EFI system partition"
+    start_mb=${last_mb}
+    end_mb=$(echo "scale=3; (${start_mb} + 512)" | bc)
+    siShellCommand parted -s -- ${SI_DISK_DEV} mkpart primary ${start_mb} ${end_mb}
+    [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create (U)EFI system partition (${MY_PART_ESP})" && siConsoleError
+    last_mb=${end_mb}
+    siShellCommand parted -s -- ${SI_DISK_DEV} set ${MY_PART_ESP#${SI_DISK_DEV}} esp on
+    [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to set (U)EFI system partition 'esp' flag (${MY_PART_ESP})" && siConsoleError
+    siShellCommand parted -s -- ${SI_DISK_DEV} set ${MY_PART_ESP#${SI_DISK_DEV}} boot on
+    [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to set (U)EFI system partition 'boot' flag (${MY_PART_ESP})" && siConsoleError
+  fi
+  
+  # /boot
+  siLogNotice "[${0##*/}] Creating boot partition"
+  start_mb=${last_mb}
+  end_mb=$(echo "scale=3; (${start_mb} + 512)" | bc)
+  siShellCommand parted -s -- ${SI_DISK_DEV} mkpart primary ${start_mb} ${end_mb}
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create boot partition (${MY_PART_BOOT})" && siConsoleError
+  last_mb=${end_mb}
+  if [ -z "${MY_PART_ESP}" ]; then
+    siShellCommand parted -s -- ${SI_DISK_DEV} set ${MY_PART_BOOT#${SI_DISK_DEV}} boot on
+    [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to set boot partition 'boot' flag (${MY_PART_BOOT})" && siConsoleError
+  fi
+
+  # LVM
+  siLogNotice "[${0##*/}] Creating LVM (system+data) partition"
+  start_mb=${last_mb}
+  end_mb=${MY_DISK_SIZE}
+  siShellCommand parted -s -- ${SI_DISK_DEV} mkpart primary ${start_mb} ${end_mb}
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create LVM partition (${MY_PART_LVM})" && siConsoleError
+  siShellCommand parted -s -- ${SI_DISK_DEV} set ${MY_PART_LVM#${SI_DISK_DEV}} lvm on
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to set LVM partition 'lvm' flag (${MY_PART_LVM})" && siConsoleError
+
+  # ... configure LVM to ignore shared LUNs
+  siShellCommand sed -i 's/^\(\s*filter\)\s*=.*/\1 = [ "a|^\/dev\/[hsv]da|", "r|.*|" ]/' /etc/lvm/lvm.conf
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to configure LVM to ignore shared LUNs" && siConsoleError
+
+  # ... device-mapper
+  siShellCommand modprobe dm-mod
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to load device mapper (dm-mod)" && siConsoleError
+
+  # ... physical volume
+  siLogNotice "[${0##*/}] Creating LVM physical volume (${MY_PART_LVM})"
+  siShellCommand pvcreate -M2 -ff -y ${MY_PART_LVM}
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create LVM physical volume (${MY_PART_LVM})" && siConsoleError
+
+  # ... volume group
+  siLogNotice "[${0##*/}] Creating LVM volume group (vg.local)"
+  if [ -e /dev/vg.local ]; then
+    siShellCommand lvremove -f /dev/vg.local &>/dev/null
+    [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to remove existing LVM logical volumes (from vg.local)" && siConsoleError
+    siShellCommand vgremove vg.local &>/dev/null
+    [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to remove existing LVM volume group (vg.local from ${MY_PART_LVM})" && siConsoleError
+  fi
+  siShellCommand vgcreate -M2 -l 0 -p 0 -s 4096K vg.local ${MY_PART_LVM}
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create LVM volume group (vg.local on ${MY_PART_LVM})" && siConsoleError
+
+  # ... logical volumes
+  #     /root
+  siLogNotice "[${0##*/}] Creating LVM logical volume (lv.root on vg.local)"
+  siShellCommand lvcreate -L20G -n lv.root vg.local --yes
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create logical volume (lv.root on vg.local)" && siConsoleError
+  #     /var
+  siLogNotice "[${0##*/}] Creating LVM logical volume (lv.var on vg.local)"
+  siShellCommand lvcreate -L40G -n lv.var vg.local --yes
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create logical volume (lv.var on vg.local)" && siConsoleError
+  #     /tmp
+  siLogNotice "[${0##*/}] Creating LVM logical volume (lv.tmp on vg.local)"
+  siShellCommand lvcreate -L10G -n lv.tmp vg.local --yes
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create logical volume (lv.tmp on vg.local)" && siConsoleError
+  #     swap
+  siLogNotice "[${0##*/}] Creating LVM logical volume (lv.swap on vg.local)"
+  siShellCommand lvcreate -L10G -n lv.swap vg.local --yes
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create logical volume (lv.swap on vg.local)" && siConsoleError
+  #     /local
+  siLogNotice "[${0##*/}] Creating LVM logical volume (lv.local on vg.local)"
+  siShellCommand lvcreate -l100%FREE -n lv.local vg.local --yes
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create logical volume (lv.local on vg.local)" && siConsoleError
+
+else
+  siLogNotice "[${0##*/}] Disk partitioning is disabled (SI_DISK_PART=${SI_DISK_PART})"
+fi
+
+# LVM (cont'd)
+siLogNotice "[${0##*/}] Activating LVM volume group (vg.local)"
+siShellCommand vgchange -a y vg.local
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to activate LVM volume group (vg.local)" && siConsoleError
+
+# Done
+siLogInfo "[${0##*/}] Done with partitioning disk"
+siPrintConfirmOptional "Done with partitioning disk; proceed ?"
+
+
+## Format partitions
+siPrintHeader "Formatting and Mounting Disk Partitions"
+siLogInfo "[${0##*/}] Formatting and mounting disk partitions"
+
+# Filesystem driver
+siShellCommand modprobe ext4
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to load filesystem driver (ext4)" && siConsoleError
+
+# swap
+siLogNotice "[${0##*/}] Formatting swap partition"
+siShellCommand mkswap /dev/mapper/vg.local-lv.swap
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to format swap partition (vg.local-lv.swap)" && siConsoleError
+
+# /(root)
+siLogNotice "[${0##*/}] Formatting and mounting root (/) partition"
+siShellCommand mkfs.ext4 -q /dev/mapper/vg.local-lv.root -F
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to format root (/) partition (vg.local-lv.root)" && siConsoleError
+siShellCommand mkdir -p "${SI_DISK_TARGET}"
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create root (/) mountpoint (${SI_DISK_TARGET})" && siConsoleError
+siShellCommand mount /dev/mapper/vg.local-lv.root "${SI_DISK_TARGET}" -t ext4
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to mount root (/) partition (vg.local-lv.root on ${SI_DISK_TARGET})" && siConsoleError
+
+# /boot
+siLogNotice "[${0##*/}] Formatting and mounting /boot partition"
+siShellCommand mkfs.ext4 -q -I 128 ${MY_PART_BOOT} -F
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to format /boot partition (${MY_PART_BOOT})" && siConsoleError
+siShellCommand mkdir -p "${SI_DISK_TARGET}/boot"
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create /boot mountpoint (${SI_DISK_TARGET}/boot)" && siConsoleError
+siShellCommand mount ${MY_PART_BOOT} "${SI_DISK_TARGET}/boot" -t ext4
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to mount /boot partition (${MY_PART_BOOT} on ${SI_DISK_TARGET}/boot)" && siConsoleError
+
+# /boot/efi (ESP)
+if [ -n "${MY_PART_ESP}" ]; then
+  siLogNotice "[${0##*/}] Formatting and mounting /boot/efi partition"
+  siShellCommand mkfs.vfat ${MY_PART_ESP}
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to format /boot/efi partition (${MY_PART_ESP})" && siConsoleError
+  siShellCommand mkdir -p "${SI_DISK_TARGET}/boot/efi"
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create /boot/efi mountpoint (${SI_DISK_TARGET}/boot/efi)" && siConsoleError
+  siShellCommand mount ${MY_PART_ESP} "${SI_DISK_TARGET}/boot/efi" -t vfat -o umask=0077
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to mount /boot/efi partition (${MY_PART_ESP} on ${SI_DISK_TARGET}/boot/efi)" && siConsoleError
+fi
+
+# /var
+siLogNotice "[${0##*/}] Formatting and mounting /var partition"
+siShellCommand mkfs.ext4 -q /dev/mapper/vg.local-lv.var -F
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to format /var partition (vg.local-lv.var)" && siConsoleError
+siShellCommand mkdir -p "${SI_DISK_TARGET}/var"
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create /var mountpoint (${SI_DISK_TARGET}/var)" && siConsoleError
+siShellCommand mount /dev/mapper/vg.local-lv.var "${SI_DISK_TARGET}/var" -t ext4
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to mount /var partition (vg.local-lv.var on ${SI_DISK_TARGET}/var)" && siConsoleError
+
+# /tmp
+siLogNotice "[${0##*/}] Formatting and mounting /tmp partition"
+siShellCommand mkfs.ext4 -q /dev/mapper/vg.local-lv.tmp -F
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to format /tmp partition (vg.local-lv.tmp)" && siConsoleError
+siShellCommand mkdir -p "${SI_DISK_TARGET}/tmp"
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create /tmp mountpoint (${SI_DISK_TARGET}/tmp)" && siConsoleError
+siShellCommand mount /dev/mapper/vg.local-lv.tmp "${SI_DISK_TARGET}/tmp" -t ext4
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to mount /tmp partition (vg.local-lv.tmp on ${SI_DISK_TARGET}/tmp)" && siConsoleError
+
+# /local
+if siMiscIsTrue "${SI_DISK_PART}" || siMiscIsTrue "${SI_DISK_WIPE}"; then
+  siLogNotice "[${0##*/}] Formatting /local partition"
+  siShellCommand mkfs.ext4 -q /dev/mapper/vg.local-lv.local -F
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to format /local partition (vg.local-lv.local)" && siConsoleError
+else
+  siLogNotice "[${0##*/}] Wiping (formatting) user data (partition) is disabled (SI_DISK_WIPE=${SI_DISK_WIPE})"
+fi
+siShellCommand mkdir -p "${SI_DISK_TARGET}/local"
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create /local mountpoint (${SI_DISK_TARGET}/local)" && siConsoleError
+siShellCommand mount /dev/mapper/vg.local-lv.local "${SI_DISK_TARGET}/local" -t ext4
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to mount /local partition (vg.local-lv.local on ${SI_DISK_TARGET}/local)" && siConsoleError
+# ... scratch directory
+siShellCommand mkdir -p "${SI_DISK_TARGET}/local/scratch"
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create /local/scratch directory (${SI_DISK_TARGET}/local/scratch)" && siConsoleError
+# ... (temporary) staging directory
+siShellCommand mkdir -p "${SI_DISK_TARGET}/local/scratch/staging"
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create /local/scratch/staging directory (${SI_DISK_TARGET}/local/scratch/staging)" && siConsoleError
+siShellCommand ln -sf "${SI_DISK_TARGET}/local/scratch/staging/" "${SI_DISK_STAGING_IMAGE}"
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to symlink /local/scratch/staging directory (${SI_DISK_STAGING_IMAGE} -> ${SI_DISK_TARGET}/local/scratch/staging)" && siConsoleError
+if [ "${SI_DISK_STAGING_OVERRIDES}" != "${SI_DISK_STAGING_IMAGE}" ]; then
+  siShellCommand ln -sf "${SI_DISK_TARGET}/local/scratch/staging/" "${SI_DISK_STAGING_OVERRIDES}"
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to symlink /local/scratch/staging directory (${SI_DISK_STAGING_OVERRIDES} -> ${SI_DISK_TARGET}/local/scratch/staging)" && siConsoleError
+fi
+
+# Done
+siLogInfo "[${0##*/}] Done with formatting and mounting disk partitions"
+siPrintConfirmOptional "Done with formatting and mounting partitions; proceed ?"
+
+
+## System partitions
+siLogInfo "[${0##*/}] Mounting system partitions"
+
+# /dev
+siLogNotice "[${0##*/}] Mounting (binding) /dev partition"
+siShellCommand mkdir -p "${SI_DISK_TARGET}/dev"
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create /dev mountpoint (${SI_DISK_TARGET}/dev)" && siConsoleError
+siShellCommand mount /dev "${SI_DISK_TARGET}/dev" -o bind
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to mount /dev partition (devfs on ${SI_DISK_TARGET}/dev)" && siConsoleError
+
+# /proc
+siLogNotice "[${0##*/}] Mounting /proc partition"
+siShellCommand mkdir -p "${SI_DISK_TARGET}/proc"
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create /proc mountpoint (${SI_DISK_TARGET}/proc)" && siConsoleError
+siShellCommand mount proc "${SI_DISK_TARGET}/proc" -t proc
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to mount /proc partition (proc on ${SI_DISK_TARGET}/proc)" && siConsoleError
+
+# /sys
+siLogNotice "[${0##*/}] Mounting /sys partition"
+siShellCommand mkdir -p "${SI_DISK_TARGET}/sys"
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create /sys mountpoint (${SI_DISK_TARGET}/sys)" && siConsoleError
+siShellCommand mount sysfs "${SI_DISK_TARGET}/sys" -t sysfs
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to mount /sys partition (sysfs on ${SI_DISK_TARGET}/sys)" && siConsoleError
+
+# Done
+siLogInfo "[${0##*/}] Done with mounting system partitions"
+siPrintConfirmOptional "Done with mounting system partitions; proceed ?"
+

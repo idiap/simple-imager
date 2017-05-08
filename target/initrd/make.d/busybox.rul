@@ -1,0 +1,75 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+BUSYBOX_INFO		:= http://www.busybox.net/
+BUSYBOX_VERSION		:= 1.26.2
+BUSYBOX_TARBALL		:= busybox-$(BUSYBOX_VERSION).tar.bz2
+BUSYBOX_URL			:= http://busybox.net/downloads/$(BUSYBOX_TARBALL)
+BUSYBOX_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(BUSYBOX_TARBALL)
+BUSYBOX_DIR			:= $(INITRD_SOURCE_DIR)/busybox-$(BUSYBOX_VERSION)
+BUSYBOX_PATCHES 	:= $(shell find $(INITRD_PATCH_DIR) -type f -name "busybox.*.patch" -exec basename {} \; | sort)
+BUSYBOX_CONFIG		:= $(INITRD_CONFIG_DIR)/busybox.config
+
+
+## Targets
+.PHONY: busybox_download
+busybox_download: $(BUSYBOX_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(BUSYBOX_DOWNLOAD)
+
+.PHONY: busybox_configure
+busybox_configure: $(BUSYBOX_DIR).configure
+
+.PHONY: busybox_build
+busybox_build: $(BUSYBOX_DIR).build
+
+.PHONY: busybox_install
+busybox_install: $(BUSYBOX_DIR).install
+INITRD_BUILD_ALL += $(BUSYBOX_DIR).install
+
+.PHONY: busybox_clean
+busybox_clean: $(BUSYBOX_DIR).clean
+
+
+## Recipes (deps: openssl)
+$(BUSYBOX_DIR).configure: $(BUSYBOX_DIR).patch
+	cd $(BUSYBOX_DIR) \
+	&& cp -a $(BUSYBOX_CONFIG) .config \
+	&& yes '' | $(MAKE) oldconfig
+	touch $@
+
+$(BUSYBOX_DIR).build: $(BUSYBOX_DIR).configure
+	cd $(BUSYBOX_DIR) \
+	&& CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include" \
+	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(BUSYBOX_DIR).install: $(BUSYBOX_DIR).build
+	cd $(BUSYBOX_DIR) \
+	&& $(MAKE) install CONFIG_PREFIX=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(BUSYBOX_DIR).patch: $(BUSYBOX_DIR).unpack
+	cd $(BUSYBOX_DIR) \
+	&& $(foreach patch, $(BUSYBOX_PATCHES), echo -n "Applying patch $(patch)..." && cat ${INITRD_PATCH_DIR}/$(patch) | patch -s -p1 && echo &&) echo 'Done (applying patches)'
+	touch $@
+
+$(BUSYBOX_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(BUSYBOX_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(BUSYBOX_DOWNLOAD) -x
+	touch $@
+
+$(BUSYBOX_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(BUSYBOX_DIR)
+	$(DOWNLOAD) $(BUSYBOX_TARBALL) $(BUSYBOX_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(BUSYBOX_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(BUSYBOX_DIR)*
+

@@ -1,0 +1,52 @@
+#!/bin/sh
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Load Simple Imager resources
+
+# Environment
+. /etc/simple-imager/environment
+siPrintBanner "INSTALLATION SCRIPT [${0##*/}]"
+
+# Variables
+siVariablesLoad
+
+# Early checks
+[ -z "${SI_IMAGE}" ] && siLogError "[${0##*/}] Undefined image (SI_IMAGE)" && siConsoleError
+
+
+## Pre-installation
+. "$(dirname "${0}")/T:snippet:pre-install"
+
+
+## Disk partitioning
+. "$(dirname "${0}")/T:snippet:partitioning"
+
+
+## Download and install image
+. "$(dirname "${0}")/T:snippet:image"
+
+
+## Host configuration
+. "$(dirname "${0}")/T:snippet:configuration"
+
+
+## Download and install overrides
+. "$(dirname "${0}")/T:snippet:overrides"
+
+
+## Post-installation
+. "$(dirname "${0}")/T:snippet:post-install"
+
+
+## Finalize installation
+. "$(dirname "${0}")/T:snippet:finalize"
+
+
+## Complete installation
+. "$(dirname "${0}")/T:snippet:complete"
+

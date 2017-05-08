@@ -1,0 +1,33 @@
+#!/bin/sh
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Load Simple Imager resources
+
+# Environment
+. /etc/simple-imager/environment
+
+# Variables
+siVariablesLoad
+
+
+## Create mountpoints (directories) required for boot (tmpfs)
+siLogNotice "[${0##*/}] Creating directories required for boot (tmpfs)"
+if [ ! -d "${SI_DISK_TARGET}/var/run" ]; then
+  siShellCommand mkdir -p "${SI_DISK_TARGET}/var/run"
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create /var/run directory (${SI_DISK_TARGET}/var/run)" && exit 1
+  siLogInfo "[${0##*/}] /var/run directory created"
+fi
+if [ ! -d "${SI_DISK_TARGET}/var/lock" ]; then
+  siShellCommand mkdir -p "${SI_DISK_TARGET}/var/lock"
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create /var/lock directory (${SI_DISK_TARGET}/var/lock)" && exit 1
+  siLogInfo "[${0##*/}] /var/lock directory created"
+fi
+
+# Done
+exit 0
+

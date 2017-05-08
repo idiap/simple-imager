@@ -1,0 +1,363 @@
+#!/bin/bash
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 1999-2010 Brian Elliott Finley [SystemImager]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Usage
+[ $# -lt 1 -o "${1##*-}" == 'help' ] && cat << EOF && exit 1
+USAGE:
+  ${0##*/} {start|stop|restart|reload|status}
+
+SYSNOPSIS:
+  Launch the RSync daemon and BitTorrent seeder to allow images and overrides
+  retrieval by target hosts.
+
+ENVIRONMENT:
+  The following environment variables are available to customize the packaging,
+  which default value can be overriden in /etc/default/si_server:
+
+  SI_REPOSITORY_IMAGES=/var/lib/simple-imager/images
+    (Source) Images repository (directory) path
+
+  SI_REPOSITORY_OVERRIDES=/var/lib/simple-imager/overrides
+    (Source) Overrides repository (directory) path
+
+  SI_REPOSITORY_TARBALLS=/var/lib/simple-imager/tarballs
+    (Source) Tarballs repository (directory) path
+
+  SI_REPOSITORY_TORRENTS=/var/lib/simple-imager/torrents
+    (Source) Torrents repository (directory) path
+
+  SI_REPOSITORY_SCRIPTS=/etc/simple-imager/si_target.scripts.d
+    (Source) Target installation scripts and configuration repository
+    (directory) path
+
+  SI_SERVER_GENDERS_FILE='/etc/genders'
+    Targets specification (genders file) path
+
+  SI_SERVER_RSYNCD_HOSTS: 127.0.0.1
+    Space-separated list of hostnames or IP addresses allowed to connect to
+    the daemon (rsyncd.conf: hosts_allow)
+
+  SI_SERVER_RSYNCD_BIND: *
+    Specific IP address to bind the daemon to (rsyncd.conf: address)
+
+  SI_SERVER_RSYNCD_PORT: 873
+    TCP port to have the daemon listen on (rsyncd.conf: port)
+
+  SI_SERVER_BTTRACKER_BIND=*
+    Specific IP address to bind the tracker to (bttrack: --bind).
+
+  SI_SERVER_BTTRACKER_PORT=6969
+    TCP port to have the tracker listen on (bttrack: --port).
+
+  SI_SERVER_BTSEEDER_BIND=*
+    Specific IP address to bind the seeder to (btlaunchmany: --bind).
+EOF
+
+# Arguments
+MY_ACTION="${1}"
+
+
+## Parameters
+# ... environment
+MY_REPOSITORY_IMAGES="${SI_REPOSITORY_IMAGES}"
+MY_REPOSITORY_OVERRIDES="${SI_REPOSITORY_OVERRIDES}"
+MY_REPOSITORY_TARBALLS="${SI_REPOSITORY_TARBALLS}"
+MY_REPOSITORY_TORRENTS="${SI_REPOSITORY_TORRENTS}"
+MY_REPOSITORY_SCRIPTS="${SI_REPOSITORY_SCRIPTS}"
+MY_SERVER_START="${SI_SERVER_START}"
+MY_SERVER_GENDERS_FILE="${SI_SERVER_GENDERS_FILE}"
+MY_SERVER_RSYNCD_HOSTS="${SI_SERVER_RSYNCD_HOSTS}"
+MY_SERVER_RSYNCD_BIND="${SI_SERVER_RSYNCD_BIND}"
+MY_SERVER_RSYNCD_PORT="${SI_SERVER_RSYNCD_PORT}"
+MY_SERVER_BTTRACKER_BIND="${SI_SERVER_BTTRACKER_BIND}"
+MY_SERVER_BTTRACKER_PORT="${SI_SERVER_BTTRACKER_PORT}"
+MY_SERVER_BTSEEDER_BIND="${SI_SERVER_BTSEEDER_BIND}"
+# ... configuration
+[ -e /etc/default/si_server ] && . /etc/default/si_server
+[ -z "${MY_REPOSITORY_IMAGES}" ] && MY_REPOSITORY_IMAGES="${SI_REPOSITORY_IMAGES}"
+[ -z "${MY_REPOSITORY_OVERRIDES}" ] && MY_REPOSITORY_OVERRIDES="${SI_REPOSITORY_OVERRIDES}"
+[ -z "${MY_REPOSITORY_TARBALLS}" ] && MY_REPOSITORY_TARBALLS="${SI_REPOSITORY_TARBALLS}"
+[ -z "${MY_REPOSITORY_TORRENTS}" ] && MY_REPOSITORY_TORRENTS="${SI_REPOSITORY_TORRENTS}"
+[ -z "${MY_REPOSITORY_SCRIPTS}" ] && MY_REPOSITORY_SCRIPTS="${SI_REPOSITORY_SCRIPTS}"
+[ -z "${MY_SERVER_START}" ] && MY_SERVER_START="${SI_SERVER_START}"
+[ -z "${MY_SERVER_GENDERS_FILE}" ] && MY_SERVER_GENDERS_FILE="${SI_SERVER_GENDERS_FILE}"
+[ -z "${MY_SERVER_RSYNCD_HOSTS}" ] && MY_SERVER_RSYNCD_HOSTS="${SI_SERVER_RSYNCD_HOSTS}"
+[ -z "${MY_SERVER_RSYNCD_BIND}" ] && MY_SERVER_RSYNCD_BIND="${SI_SERVER_RSYNCD_BIND}"
+[ -z "${MY_SERVER_RSYNCD_PORT}" ] && MY_SERVER_RSYNCD_PORT="${SI_SERVER_RSYNCD_PORT}"
+[ -z "${MY_SERVER_BTTRACKER_BIND}" ] && MY_SERVER_BTTRACKER_BIND="${SI_SERVER_BTTRACKER_BIND}"
+[ -z "${MY_SERVER_BTTRACKER_PORT}" ] && MY_SERVER_BTTRACKER_PORT="${SI_SERVER_BTTRACKER_PORT}"
+[ -z "${MY_SERVER_BTSEEDER_BIND}" ] && MY_SERVER_BTSEEDER_BIND="${SI_SERVER_BTSEEDER_BIND}"
+# ... magic
+[ "${MY_SERVER_RSYNCD_BIND}" == '*' ] && MY_SERVER_RSYNCD_BIND=
+[ "${MY_SERVER_BTTRACKER_BIND}" == '*' ] && MY_SERVER_BTTRACKER_BIND=
+[ "${MY_SERVER_BTSEEDER_BIND}" == '*' ] && MY_SERVER_BTSEEDER_BIND=
+# ... default
+[ -z "${MY_REPOSITORY_IMAGES}" ] && MY_REPOSITORY_IMAGES='/var/lib/simple-imager/images'
+[ -z "${MY_REPOSITORY_OVERRIDES}" ] && MY_REPOSITORY_OVERRIDES='/var/lib/simple-imager/overrides'
+[ -z "${MY_REPOSITORY_TARBALLS}" ] && MY_REPOSITORY_TARBALLS='/var/lib/simple-imager/tarballs'
+[ -z "${MY_REPOSITORY_TORRENTS}" ] && MY_REPOSITORY_TORRENTS='/var/lib/simple-imager/torrents'
+[ -z "${MY_REPOSITORY_SCRIPTS}" ] && MY_REPOSITORY_SCRIPTS='/etc/simple-imager/si_target.scripts.d'
+[ -z "${MY_SERVER_START}" ] && MY_SERVER_START='no'
+[ -z "${MY_SERVER_GENDERS_FILE}" ] && MY_SERVER_GENDERS_FILE='/etc/genders'
+[ -z "${MY_SERVER_RSYNCD_HOSTS}" ] && MY_SERVER_RSYNCD_HOSTS='127.0.0.1'
+[ -z "${MY_SERVER_RSYNCD_PORT}" ] && MY_SERVER_RSYNCD_PORT='873'
+[ -z "${MY_SERVER_BTTRACKER_PORT}" ] && MY_SERVER_BTTRACKER_PORT='6969'
+# ... clean-up
+MY_REPOSITORY_IMAGES="${MY_REPOSITORY_IMAGES%%/}"
+MY_REPOSITORY_OVERRIDES="${MY_REPOSITORY_OVERRIDES%%/}"
+MY_REPOSITORY_TARBALLS="${MY_REPOSITORY_TARBALLS%%/}"
+MY_REPOSITORY_TORRENTS="${MY_REPOSITORY_TORRENTS%%/}"
+MY_REPOSITORY_SCRIPTS="${MY_REPOSITORY_SCRIPTS%%/}"
+# ... runtime
+MY_RUNTIME_RSYNCD_CONF='/var/run/si_server.rsyncd.conf'
+MY_RUNTIME_RSYNCD_PID='/var/run/si_server.rsyncd.pid'
+MY_RUNTIME_RSYNCD_LOG='/var/log/simple-imager/si_server.rsyncd.log'
+MY_RUNTIME_BTTRACKER_DFILE='/var/tmp/si_server.bttracker.dfile'
+MY_RUNTIME_BTTRACKER_PID='/var/run/si_server.bttracker.pid'
+#MY_RUNTIME_BTTRACKER_LOG='/var/log/simple-imager/si_server.bttracker.log'
+MY_RUNTIME_BTSEEDER_PID='/var/run/si_server.btseeder.pid'
+
+
+## Actions (pre-handling)
+case "${MY_ACTION}" in
+
+  start)
+    [ "${MY_SERVER_START}" != 'yes' ] && echo "WARNING: Server is not configured to start; bailing out" >&2 && exit 0
+    # Cont'd below
+    ;;
+
+  stop)
+    # PIDs
+    [ -e "${MY_RUNTIME_BTSEEDER_PID}" ] && pid_btseeder=$(head -n 1 "${MY_RUNTIME_BTSEEDER_PID}") || pid_btseeder=
+    [ -e "${MY_RUNTIME_BTTRACKER_PID}" ] && pid_bttracker=$(head -n 1 "${MY_RUNTIME_BTTRACKER_PID}") || pid_bttracker=
+    [ -e "${MY_RUNTIME_RSYNCD_PID}" ] && pid_rsync=$(head -n 1 "${MY_RUNTIME_RSYNCD_PID}") || pid_rsync=
+    # Kill
+    [ -n "${pid_btseeder}" ] && kill ${pid_btseeder}
+    [ -n "${pid_bttracker}" ] && kill ${pid_bttracker}
+    [ -n "${pid_rsync}" ] && kill ${pid_rsync}
+    # Wait for services to terminate
+    sleep 3
+    # Check
+    [ -n "${pid_btseeder}" -a -e "/proc/${pid_btseeder}" ] && echo "ERROR: Failed to terminate BitTorrent seeder (${pid_btseeder})" >&2 && exit 1
+    [ -n "${pid_bttracker}" -a -e "/proc/${pid_bttracker}" ] && echo "ERROR: Failed to terminate BitTorrent tracker (${pid_bttracker})" >&2 && exit 1
+    [ -n "${pid_rsync}" -a -e "/proc/${pid_rsync}" ] && echo "ERROR: Failed to terminate RSync daemon (${pid_rsync})" >&2 && exit 1
+    # Clean-up
+    rm -f "${MY_RUNTIME_BTSEEDER_PID}" "${MY_RUNTIME_BTTRACKER_PID}" "${MY_RUNTIME_RSYNCD_PID}"
+    exit 0
+    ;;
+
+  restart)
+    "${0}" stop || exit 1
+    [ "${MY_SERVER_START}" != 'yes' ] && echo "WARNING: Server is not configured to start; bailing out" >&2 && exit 0
+    # Cont'd below
+    ;;
+
+  reload)
+    [ "${MY_SERVER_START}" != 'yes' ] && echo "WARNING: Server is not configured to start; bailing out" >&2 && exit 0
+    # Cont'd below
+    ;;
+
+  status)
+    # RSync daemon
+    [ -e "${MY_RUNTIME_RSYNCD_PID}" ] && pid=$(head -n 1 "${MY_RUNTIME_RSYNCD_PID}") || pid=
+    [ -n "${pid}" -a ! -e "/proc/${pid}" ] && pid= && rm -f "${MY_RUNTIME_RSYNCD_PID}"
+    [ -n "${pid}" ] && echo "INFO: RSync daemon is running (${pid})" || echo 'INFO: RSync daemon is not running'
+    # BitTorrent
+    if [ -n "$(which bttrack)" -a -n "$(which btlaunchmany)" ]; then
+      # ... tracker
+      [ -e "${MY_RUNTIME_BTTRACKER_PID}" ] && pid=$(head -n 1 "${MY_RUNTIME_BTTRACKER_PID}") || pid=
+      [ -n "${pid}" -a ! -e "/proc/${pid}" ] && pid= && rm -f "${MY_RUNTIME_BTTRACKER_PID}"
+      [ -n "${pid}" ] && echo "INFO: BitTorrent tracker is running (${pid})" || echo 'INFO: BitTorrent tracker is not running'
+      # ... seeder
+      [ -e "${MY_RUNTIME_BTSEEDER_PID}" ] && pid=$(head -n 1 "${MY_RUNTIME_BTSEEDER_PID}") || pid=
+      [ -n "${pid}" -a ! -e "/proc/${pid}" ] && pid= && rm -f "${MY_RUNTIME_BTSEEDER_PID}"
+      [ -n "${pid}" ] && echo "INFO: BitTorrent seeder is running (${pid})" || echo 'INFO: BitTorrent seeder is not running'
+    else
+      echo 'WARNING: Missing BitTorrent dependencies; protocol is disabled' >&2
+    fi
+    exit 0
+    ;;
+
+  *)
+    echo "ERROR: Invalid argument (${MY_ACTION})" >&2
+    exit 1
+    ;;
+
+esac
+
+
+## Check
+[ ! -d "${MY_REPOSITORY_IMAGES}" ] && echo "ERROR: Missing/invalid images repository directory (${MY_REPOSITORY_IMAGES})" >&2 && exit 1
+[ ! -d "${MY_REPOSITORY_OVERRIDES}" ] && echo "ERROR: Missing/invalid overrides repository directory (${MY_REPOSITORY_OVERRIDES})" >&2 && exit 1
+[ ! -d "${MY_REPOSITORY_TARBALLS}" ] && echo "ERROR: Missing/invalid tarballs repository directory (${MY_REPOSITORY_TARBALLS})" >&2 && exit 1
+[ ! -d "${MY_REPOSITORY_TORRENTS}" ] && echo "ERROR: Missing/invalid torrents repository directory (${MY_REPOSITORY_TORRENTS})" >&2 && exit 1
+[ ! -d "${MY_REPOSITORY_SCRIPTS}" ] && echo "ERROR: Missing/invalid scripts repository directory (${MY_REPOSITORY_SCRIPTS})" >&2 && exit 1
+[ -z "$(which nodeattr)" ] && echo "ERROR: Missing 'nodeattr' (genders) executable" >&2 && exit 1
+[ -z "$(which rsync)" ] && echo "ERROR: Missing 'rsync' executable" >&2 && exit 1
+[ -z "$(which bttrack)" ] && echo "WARNING: Missing 'bttrack' (bittorrent) executable" >&2
+[ -z "$(which btlaunchmany)" ] && echo "WARNING: Missing 'btlaunchmany' (bittorrent) executable" >&2
+
+
+## Update targets installation configuration file
+
+# 'genders' (Simple Imager default)
+MY_GENDERS_FILE="${MY_REPOSITORY_SCRIPTS}/genders"
+echo "INFO: Updating targets installation configuration file (${MY_GENDERS_FILE})"
+grep -vE '^(\s*#|$)' "${MY_SERVER_GENDERS_FILE}" | grep '\Wsi_target\W' > "${MY_GENDERS_FILE}"
+
+# 'cluster.txt' (SystemImager legacy)
+MY_CLUSTER_FILE="${MY_REPOSITORY_SCRIPTS}/cluster.txt"
+echo "INFO: Updating targets (legacy) installation configuration file (${MY_CLUSTER_FILE})"
+cat << EOF > "${MY_CLUSTER_FILE}"
+#
+# hostname:group:imagename:override
+#
+# global_override=:all:
+#
+EOF
+for si_target in $(nodeattr -f "${MY_SERVER_GENDERS_FILE}" -n si_target); do
+  si_group=
+  si_image=
+  si_overrides=
+  eval $(nodeattr -f "${MY_SERVER_GENDERS_FILE}" -l "${si_target}" | grep -E '^\s*si_(group|image|overrides)\s*=.*')
+  [ -z "${si_group}" ] && echo "ERROR: Missing/empty 'si_group' for target host '${si_target}'" >&2 && continue
+  [ -z "${si_image}" ] && echo "ERROR: Missing/empty 'si_image' for target host '${si_target}'" >&2 && continue
+  if [ -z "${si_overrides}" ]; then
+    echo "${si_target}:${si_group}:${si_image}:" >> "${MY_CLUSTER_FILE}"
+  else
+    for si_override in ${si_overrides//:/ }; do
+      echo "${si_target}:${si_group}:${si_image}:${si_override}" >> "${MY_CLUSTER_FILE}"
+    done
+  fi
+done
+
+# Done (reload) ?
+[ "${MY_ACTION}" == 'reload' ] && exit 0
+
+
+## List images/overrides
+MY_SERVER_IMAGES="$(find "${MY_REPOSITORY_IMAGES}/" -mindepth 1 -maxdepth 1 -type d | sed 's|.*/||g' | tr '\n' ' ')"
+MY_SERVER_OVERRIDES="$(find "${MY_REPOSITORY_OVERRIDES}/" -mindepth 1 -maxdepth 1 -type d | sed 's|.*/||g' | tr '\n' ' ')"
+
+
+## Check
+
+# RSync daemon
+[ -e "${MY_RUNTIME_RSYNCD_PID}" ] && pid=$(head -n 1 "${MY_RUNTIME_RSYNCD_PID}") || pid=
+[ -n "${pid}" -a -e "/proc/${pid}" ] && echo "ERROR: RSync daemon is already running (${pid})" >&2 && exit 1
+rm -f "${MY_RUNTIME_RSYNCD_PID}"
+ps="$(netstat -Wtlnp | awk "{if(\$4~\":${MY_SERVER_RSYNCD_PORT}\$\") print \$7}" | sort -u | tr '\n' ',')"; ps="${ps%%,}"
+[ -n "${ps}" ] && echo "ERROR: Cannot start RSync daemon; a process is already listening on port ${MY_SERVER_RSYNCD_PORT} (${ps})" >&2 && exit 1
+
+# BitTorrent
+if [ -n "$(which bttrack)" -a -n "$(which btlaunchmany)" ]; then
+
+  # ... tracker
+  [ -e "${MY_RUNTIME_BTTRACKER_PID}" ] && pid=$(head -n 1 "${MY_RUNTIME_BTTRACKER_PID}") || pid=
+  [ -n "${pid}" -a -e "/proc/${pid}" ] && echo "ERROR: BitTorrent tracker is already running (${pid})" >&2 && exit 1
+  rm -f "${MY_RUNTIME_BTTRACKER_PID}"
+  ps="$(netstat -Wtlnp | awk "{if(\$4~\":${MY_SERVER_BTTRACKER_PORT}\$\") print \$7}" | sort -u | tr '\n' ',')"; ps="${ps%%,}"
+  [ -n "${ps}" ] && echo "ERROR: Cannot start BitTorrent tracker; a process is already listening on port ${MY_SERVER_BTTRACKER_PORT} (${ps})" >&2 && exit 1
+
+  # ... seeder
+  [ -e "${MY_RUNTIME_BTSEEDER_PID}" ] && pid=$(head -n 1 "${MY_RUNTIME_BTSEEDER_PID}") || pid=
+  [ -n "${pid}" -a -e "/proc/${pid}" ] && echo "ERROR: BitTorrent seeder is already running (${pid})" >&2 && exit 1
+  rm -f "${MY_RUNTIME_BTSEEDER_PID}"
+
+fi
+
+
+## RSync daemon
+
+# Configuration
+cat << EOF > "${MY_RUNTIME_RSYNCD_CONF}"
+## Temporary RSync daemon configuration (${0##*/}:$$)
+
+# System settings
+uid = root
+gid = root
+pid file = ${MY_RUNTIME_RSYNCD_PID}
+log file = ${MY_RUNTIME_RSYNCD_LOG}
+
+# Network settings
+timeout = 60
+${MY_SERVER_RSYNCD_BIND:-#[n/a] }address = ${MY_SERVER_RSYNCD_BIND}
+port = ${MY_SERVER_RSYNCD_PORT}
+hosts allow = ${MY_SERVER_RSYNCD_HOSTS}
+
+# Service settings
+use chroot = yes
+read only = yes
+list = yes
+numeric ids = yes
+dont compress = *.gz *.tgz *.zip *.Z *.ZIP *.bz2 *.xz *.txz *.deb *.rpm
+
+
+## Repositories (as per configuration)
+[overrides]
+path = ${MY_REPOSITORY_OVERRIDES}
+
+[tarballs]
+path = ${MY_REPOSITORY_TARBALLS}
+
+[torrents]
+path = ${MY_REPOSITORY_TORRENTS}
+
+[scripts]
+path = ${MY_REPOSITORY_SCRIPTS}
+
+
+## Repositories (available images)
+EOF
+for image in ${MY_SERVER_IMAGES}; do
+  cat << EOF >> "${MY_RUNTIME_RSYNCD_CONF}"
+[${image}]
+path = ${MY_REPOSITORY_IMAGES}/${image}
+
+EOF
+done
+
+# Start
+echo -n 'INFO: Starting RSync daemon... '
+rsync --daemon --config="${MY_RUNTIME_RSYNCD_CONF}"
+[ $? -ne 0 ] && echo 'ERROR' && exit 1
+echo "OK ($(head -n 1 "${MY_RUNTIME_RSYNCD_PID}"))"
+
+
+## BitTorrent
+[ -z "$(which bttrack)" -o -z "$(which btlaunchmany)" ] && echo 'WARNING: Missing BitTorrent dependencies; protocol is disabled' >&2 && exit 0
+
+# Tracker
+echo -n 'INFO: Starting BitTorrent tracker... '
+bttrack \
+  ${MY_SERVER_BTTRACKER_BIND:+--bind ${MY_SERVER_BTTRACKER_BIND}} --port ${MY_SERVER_BTTRACKER_PORT} \
+  --allowed_dir "${MY_REPOSITORY_TORRENTS}/" \
+  --dfile "${MY_RUNTIME_BTTRACKER_DFILE}" \
+  ${MY_RUNTIME_BTTRACKER_LOG:+--logfile "${MY_RUNTIME_BTTRACKER_LOG}"} \
+  0</dev/null 1>/dev/null 2>&1 &
+[ $? -ne 0 ] && echo 'ERROR' && exit 1
+echo "$!" > "${MY_RUNTIME_BTTRACKER_PID}"
+echo "OK ($(head -n 1 "${MY_RUNTIME_BTTRACKER_PID}"))"
+
+# Seeder
+echo -n 'INFO: Starting BitTorrent seeder... '
+btlaunchmany \
+  "${MY_REPOSITORY_TORRENTS}/" \
+  ${MY_SERVER_BTSEEDER_BIND:+--bind ${MY_SERVER_BTSEEDER_BIND}} \
+  --max_uploads 10 --max_upload_rate 0 \
+  --keepalive_interval 5 --rerequest_interval 5 \
+  --display_interval 3600 \
+  0</dev/null 1>/dev/null 2>&1 &
+[ $? -ne 0 ] && echo 'ERROR' && exit 1
+echo "$!" > "${MY_RUNTIME_BTSEEDER_PID}"
+echo "OK ($(head -n 1 "${MY_RUNTIME_BTSEEDER_PID}"))"
+
+# Done
+exit 0
+

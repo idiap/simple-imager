@@ -1,0 +1,34 @@
+#!/bin/sh
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Simple Imager installation
+
+# Environment (si*)
+. /etc/simple-imager/environment
+
+# Variables (SI_*)
+siVariablesLoad
+
+# Turn on job control and launch console on <CTRL+C>
+set -m
+trap 'siConsole' INT
+
+
+## Launch installation
+siPrintBanner "SIMPLE IMAGER INSTALLATION [${0##*/}]"
+
+# Execute (source) Simple Imager installation scripts
+for file in $(ls -1 "${SI_INSTALL_DIR}/" | sort); do
+  siLogInfo "[${0##*/}] Executing Simple Imager installation script (${SI_INSTALL_DIR}/${file})"
+  . "${SI_INSTALL_DIR}/${file}"
+done
+
+# Done
+# (drop to console in case we get here)
+siConsole
+

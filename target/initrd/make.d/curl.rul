@@ -1,0 +1,81 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+CURL_INFO			:= http://curl.haxx.se/
+CURL_VERSION		:= 7.52.1
+CURL_TARBALL		:= curl-$(CURL_VERSION).tar.lzma
+CURL_URL			:= https://curl.haxx.se/download/$(CURL_TARBALL)
+CURL_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(CURL_TARBALL)
+CURL_DIR			:= $(INITRD_SOURCE_DIR)/curl-$(CURL_VERSION)
+
+
+## Targets
+.PHONY: curl_download
+curl_download: $(CURL_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(CURL_DOWNLOAD)
+
+.PHONY: curl_configure
+curl_configure: $(CURL_DIR).configure
+
+.PHONY: curl_build
+curl_build: $(CURL_DIR).build
+
+.PHONY: curl_install
+curl_install: $(CURL_DIR).install
+INITRD_BUILD_ALL += $(CURL_DIR).install
+
+.PHONY: curl_clean
+curl_clean: $(CURL_DIR).clean
+
+
+## Recipes (deps: openssl)
+$(CURL_DIR).configure: $(CURL_DIR).unpack
+	cd $(CURL_DIR) \
+	&& CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include" \
+	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   ./configure \
+	     --prefix=/usr \
+	     --with-sysroot=$(INITRD_IMAGE_DIR) \
+	     --disable-debug \
+	     --disable-dict \
+	     --disable-gopher \
+	     --disable-imap \
+	     --disable-ldap \
+	     --disable-ldaps \
+	     --disable-pop3 \
+	     --disable-rtsp \
+	     --disable-smb \
+	     --disable-smtp \
+	     --disable-telnet \
+	     --disable-silent-rules
+	touch $@
+
+$(CURL_DIR).build: $(CURL_DIR).configure
+	cd $(CURL_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(CURL_DIR).install: $(CURL_DIR).build
+	cd $(CURL_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(CURL_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(CURL_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(CURL_DOWNLOAD) -x
+	touch $@
+
+$(CURL_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(CURL_DIR)
+	$(DOWNLOAD) $(CURL_TARBALL) $(CURL_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(CURL_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(CURL_DIR)*
+

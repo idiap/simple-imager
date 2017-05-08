@@ -1,0 +1,3 @@
+## Simple Imager
+#  (keep empty /etc/mtab to suppress spurious mkfs.ext warnings)
+

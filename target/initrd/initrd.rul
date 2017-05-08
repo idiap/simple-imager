@@ -1,0 +1,193 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+INITRD_MAKE_DIR		:= $(INITRD_DIR)/make.d
+INITRD_PATCH_DIR	:= $(INITRD_DIR)/patch.d
+INITRD_CONFIG_DIR	:= $(INITRD_DIR)/conf.d
+INITRD_BUILD_DIR	:= $(BUILD_DIR)/initrd
+INITRD_SOURCE_DIR	:= $(INITRD_BUILD_DIR)/source
+INITRD_IMAGE_DIR	:= $(INITRD_BUILD_DIR)/image
+
+
+## Setup pkg-config (to use only resources we built)
+export PKG_CONFIG_DIR=
+export PKG_CONFIG_SYSROOT_DIR=$(INITRD_IMAGE_DIR)
+export PKG_CONFIG_LIBDIR=$(INITRD_IMAGE_DIR)/usr/lib/pkgconfig:$(INITRD_IMAGE_DIR)/usr/share/pkgconfig
+export LD_LIBRARY_PATH=$(INITRD_IMAGE_DIR)/usr/lib
+
+
+## Includes
+#  WARNING: Order packages by respecting their build dependencies!
+include $(INITRD_MAKE_DIR)/zlib.rul
+include $(INITRD_MAKE_DIR)/gzip.rul
+include $(INITRD_MAKE_DIR)/bzip2.rul
+include $(INITRD_MAKE_DIR)/xz.rul
+include $(INITRD_MAKE_DIR)/openssl.rul
+include $(INITRD_MAKE_DIR)/ncurses.rul
+include $(INITRD_MAKE_DIR)/readline.rul
+include $(INITRD_MAKE_DIR)/kmod.rul
+include $(INITRD_MAKE_DIR)/kexec.rul
+include $(INITRD_MAKE_DIR)/utillinux.rul
+include $(INITRD_MAKE_DIR)/coreutils.rul
+include $(INITRD_MAKE_DIR)/busybox.rul
+include $(INITRD_MAKE_DIR)/bc.rul
+include $(INITRD_MAKE_DIR)/genders.rul
+include $(INITRD_MAKE_DIR)/udev.rul
+include $(INITRD_MAKE_DIR)/libusb.rul
+include $(INITRD_MAKE_DIR)/usbutils.rul
+include $(INITRD_MAKE_DIR)/lsscsi.rul
+include $(INITRD_MAKE_DIR)/e2fsprogs.rul
+include $(INITRD_MAKE_DIR)/lvm.rul
+include $(INITRD_MAKE_DIR)/mdadm.rul
+include $(INITRD_MAKE_DIR)/parted.rul
+include $(INITRD_MAKE_DIR)/scrub.rul
+include $(INITRD_MAKE_DIR)/libxml2.rul
+include $(INITRD_MAKE_DIR)/libarchive.rul
+include $(INITRD_MAKE_DIR)/pigz.rul
+include $(INITRD_MAKE_DIR)/pbzip2.rul
+include $(INITRD_MAKE_DIR)/pixz.rul
+include $(INITRD_MAKE_DIR)/tar.rul
+include $(INITRD_MAKE_DIR)/curl.rul
+include $(INITRD_MAKE_DIR)/rsync.rul
+include $(INITRD_MAKE_DIR)/openssh.rul
+include $(INITRD_MAKE_DIR)/aria2.rul
+
+
+## Targets
+.PHONY: initrd_download
+initrd_download: $(INITRD_DIR).download
+
+.PHONY: initrd_build
+initrd_build: $(INITRD_BUILD_DIR).build
+
+.PHONY: initrd_finalize
+initrd_finalize: $(INITRD_BUILD_DIR).finalize
+
+.PHONY: initrd_install
+initrd_install: $(INITRD_BUILD_DIR).install
+
+.PHONY: initrd_uninstall
+initrd_uninstall: $(INITRD_BUILD_DIR).uninstall
+
+.PHONY: initrd_clear
+initrd_clear: $(INITRD_BUILD_DIR).clear
+
+.PHONY: initrd_clean
+initrd_clean: $(INITRD_BUILD_DIR).clean
+
+
+## Recipes
+$(INITRD_DIR).download: $(INITRD_DOWNLOAD_ALL)
+
+$(INITRD_BUILD_DIR).mkdir: $(BUILD_DIR).mkdir
+	test -d $(INITRD_BUILD_DIR) || mkdir $(INITRD_BUILD_DIR)
+	touch $@
+
+$(INITRD_SOURCE_DIR).mkdir: $(INITRD_BUILD_DIR).mkdir
+	test -d $(INITRD_SOURCE_DIR) || mkdir $(INITRD_SOURCE_DIR)
+	touch $@
+
+$(INITRD_IMAGE_DIR).mkdir: $(INITRD_BUILD_DIR).mkdir
+	test -d $(INITRD_IMAGE_DIR) || mkdir $(INITRD_IMAGE_DIR)
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/etc
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/etc/modprobe.d
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/etc/network
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/etc/network/if-down.d
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/etc/network/if-post-down.d
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/etc/network/if-pre-up.d
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/etc/network/if-up.d
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/usr
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/usr/bin
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/usr/sbin
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/usr/lib
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/usr/lib/firmware
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/usr/lib/modules
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/usr/lib$(ARCH_BITS)
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/var
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/var/log
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/tmp
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/dev
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/proc
+	mkdir -p -m 0755 $(INITRD_IMAGE_DIR)/run
+
+	@echo '## usrmerge: https://wiki.debian.org/UsrMerge'
+	ln -s usr/bin/ $(INITRD_IMAGE_DIR)/bin
+	ln -s usr/sbin/ $(INITRD_IMAGE_DIR)/sbin
+	ln -s usr/lib/ $(INITRD_IMAGE_DIR)/lib
+	ln -s usr/lib$(ARCH_BITS)/ $(INITRD_IMAGE_DIR)/lib$(ARCH_BITS)
+	ln -s ../run $(INITRD_IMAGE_DIR)/var/run
+
+	touch $@
+
+$(INITRD_BUILD_DIR).build: $(INITRD_DIR).download $(INITRD_IMAGE_DIR).mkdir $(INITRD_BUILD_ALL)
+
+$(INITRD_BUILD_DIR).finalize: $(INITRD_BUILD_DIR).build $(KERNEL_BUILD_DIR).build
+	@echo "## Clean-up unnecessary development resources"
+	find $(INITRD_IMAGE_DIR) -type f \( -name '*.a' -o -name '*.la' \) | xargs -r rm
+	rm -rf \
+	  $(INITRD_IMAGE_DIR)/usr/include \
+	  $(INITRD_IMAGE_DIR)/usr/lib/cmake \
+	  $(INITRD_IMAGE_DIR)/usr/lib/pkgconfig \
+	  $(INITRD_IMAGE_DIR)/usr/share/aclocal \
+	  $(INITRD_IMAGE_DIR)/usr/share/pkgconfig
+
+	@echo "## Clean-up unnecessary documentation resources"
+	rm -rf \
+	  $(INITRD_IMAGE_DIR)/usr/share/doc \
+	  $(INITRD_IMAGE_DIR)/usr/share/gtk-doc \
+	  $(INITRD_IMAGE_DIR)/usr/share/man \
+	  $(INITRD_IMAGE_DIR)/usr/share/info
+
+	@echo "## Clean-up other unnecessary resources"
+	rm -rf \
+	  $(INITRD_IMAGE_DIR)/usr/share/bash-completions
+
+	@echo "## Strip all binaries from their debug symbols"
+	( file $(INITRD_IMAGE_DIR)/usr/bin/* $(INITRD_IMAGE_DIR)/usr/sbin/* | grep -v "text\|symbolic" | cut -d':' -f1 | xargs -r strip )
+
+	@echo "## Install host library dependencies"
+	$(COPY_LIBRARIES) $(INITRD_IMAGE_DIR)
+
+	@echo "## Copy other system libraries/files (from build host)"
+	mkdir -p $(INITRD_IMAGE_DIR)/lib/$(ARCH)-linux-gnu
+	cp -av /lib/$(ARCH)-linux-gnu/libnss* $(INITRD_IMAGE_DIR)/lib/$(ARCH)-linux-gnu/
+	cp -av /lib/$(ARCH)-linux-gnu/ld* $(INITRD_IMAGE_DIR)/lib/$(ARCH)-linux-gnu/
+	cp -av /lib/$(ARCH)-linux-gnu/libsec* $(INITRD_IMAGE_DIR)/lib/$(ARCH)-linux-gnu/
+	cp -av /lib$(ARCH_BITS)/* $(INITRD_IMAGE_DIR)/lib$(ARCH_BITS)/
+
+	@echo "## Install kernel modules and firmware"
+	make INSTALL_MOD_PATH=$(INITRD_IMAGE_DIR) -C $(LINUX_DIR) modules_install
+	$(COPY_FIRMWARES) $(INITRD_IMAGE_DIR) $(LINUX_FIRMWARE_DIR)
+
+	@echo "## Use BusyBox init script"
+	ln -sf usr/bin/busybox $(INITRD_IMAGE_DIR)/init
+
+	@echo "## Copy Simple Imager environment"
+	rsync -av $(INITRD_DIR)/simple-imager/ $(INITRD_IMAGE_DIR)/
+	echo $(VERSION) > $(INITRD_IMAGE_DIR)/etc/si_version
+
+	touch $@
+
+$(INITRD_BUILD_DIR).install: $(INITRD_BUILD_DIR).finalize $(BOOT_DIR).mkdir
+	@echo "## Pack and install the initrd image"
+	( cd $(INITRD_IMAGE_DIR) && find . | cpio --quiet -o -H newc > $(BOOT_DIR)/initrd )
+	( cd $(BOOT_DIR) && pixz -9 initrd && mv initrd.xz initrd.img )
+	touch $@
+
+$(INITRD_BUILD_DIR).uninstall:
+	rm -f $(BOOT_DIR)/initrd*
+	rm -f $(INITRD_BUILD_DIR).install
+
+$(INITRD_BUILD_DIR).clear: $(INITRD_BUILD_DIR).uninstall
+	rm -rf $(INITRD_IMAGE_DIR)*
+	rm -f $(INITRD_SOURCE_DIR)/*.install
+
+$(INITRD_BUILD_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(INITRD_BUILD_DIR)*
+

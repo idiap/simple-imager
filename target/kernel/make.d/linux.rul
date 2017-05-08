@@ -1,0 +1,92 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+LINUX_INFO			:= http://kernel.org
+LINUX_VERSION		:= 4.9.20
+LINUX_VERSHORT		:= $(shell echo $(LINUX_VERSION) | sed 's/^\([^.]*\.[^.]*\)\..*$$/\1/')
+LINUX_TARBALL		:= linux-$(LINUX_VERSION).tar.xz
+LINUX_URL			:= https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-$(LINUX_VERSION).tar.xz
+LINUX_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(LINUX_TARBALL)
+LINUX_DIR			:= $(KERNEL_SOURCE_DIR)/linux-$(LINUX_VERSION)
+LINUX_CONFIG		:= $(KERNEL_CONFIG_DIR)/linux.$(ARCH).config
+# Patches; names for kernel patch files can be of 2 forms:
+#   1) patches that apply to all architectures
+#        linux.all.XX<name>.patch
+#   2) patch applies to a subset of arches
+#        linux.<arch1>,<arch2>,...,<archN>.XX<name>.patch
+LINUX_PATCHES 		:= $(shell find $(KERNEL_PATCH_DIR) \
+								-type f \
+								-name "linux.$(ARCH).*.patch" -o \
+								-name "linux.all.*.patch" -o \
+								-name "linux.$(ARCH),*.*.patch" -o \
+								-name "linux.*,$(ARCH),*.*.patch" -o \
+								-name "linux.*,$(ARCH).*.patch" \
+								-exec basename {} \; | sort)
+LINUX_TARGET		:= bzImage
+LINUX_IMAGE			:= $(LINUX_DIR)/arch/$(ARCH)/boot/$(LINUX_TARGET)
+
+
+## Targets
+.PHONY: linux_download
+linux_download: $(LINUX_DOWNLOAD)
+KERNEL_DOWNLOAD_ALL += $(LINUX_DOWNLOAD)
+
+.PHONY: linux_configure
+linux_configure: $(LINUX_DIR).configure
+
+.PHONY: linux_build
+linux_build: $(LINUX_DIR).build
+KERNEL_BUILD_ALL += $(LINUX_DIR).build
+
+.PHONY: linux_clean
+linux_clean: $(LINUX_DIR).clean
+
+.PHONY: linux_patches
+linux_patches:
+	@echo $(LINUX_PATCHES)
+
+
+## Recipes
+$(LINUX_DIR).configure: $(LINUX_DIR).patch
+	cd $(LINUX_DIR) \
+	&& sed -i "s/^\s*EXTRAVERSION\s*=.*$$/EXTRAVERSION = -si$(ARCH_BITS)/" Makefile \
+	&& cp -a $(LINUX_CONFIG) .config \
+	&& $(MAKE) oldconfig
+	touch $@
+
+$(LINUX_DIR).build: $(LINUX_DIR).kernel $(LINUX_DIR).modules
+
+$(LINUX_DIR).kernel: $(LINUX_DIR).configure
+	cd $(LINUX_DIR) \
+	&& $(MAKE) -j $(NCPUS) $(LINUX_TARGET)
+	touch $@
+
+$(LINUX_DIR).modules: $(LINUX_DIR).configure
+	cd $(LINUX_DIR) \
+	&& $(MAKE) -j $(NCPUS) modules
+	touch $@
+
+$(LINUX_DIR).patch: $(LINUX_DIR).unpack
+	cd $(LINUX_DIR) \
+	&& $(foreach patch, $(LINUX_PATCHES), echo -n "Applying patch $(patch)..." && cat ${KERNEL_PATCH_DIR}/$(patch) | patch -s -p1 && echo &&) echo 'Done (applying patches)'
+	touch $@
+
+$(LINUX_DIR).unpack: $(KERNEL_SOURCE_DIR).mkdir $(LINUX_DOWNLOAD)
+	cd $(KERNEL_SOURCE_DIR) \
+	&& $(PTAR) $(LINUX_DOWNLOAD) -x
+	touch $@
+
+$(LINUX_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(LINUX_DIR)
+	$(DOWNLOAD) $(LINUX_TARBALL) $(LINUX_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(LINUX_DIR).clean: $(KERNEL_DIR).uninstall
+	rm -rf $(LINUX_DIR)*
+

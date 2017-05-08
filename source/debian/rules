@@ -1,0 +1,29 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_install:
+	# Create man pages
+	mkdir -p debian/tmp/usr/share/man/man1
+	help2man \
+		--name 'Simple Imager - Source RSync daemon' \
+		--help-option '--help' --version-string $(VERSION) --no-discard-stderr --no-info \
+		./usr/sbin/si_source | fgrep -v 'invalid option' > debian/tmp/usr/share/man/man1/si_source.1
+
+	# Install
+	dh_install
+
+	# Remove GIT (empty) diretory placeholders
+	find debian -type f -name .gitplaceholder -delete
+
+override_dh_installdocs:
+	mkdir -p debian/docs.d
+	cp ../README debian/docs.d/README.SimpleImager
+	cp ../CREDITS.* debian/docs.d/.
+	dh_installdocs
+
+override_dh_clean:
+	dh_clean
+	rm -rf debian/docs.d
+

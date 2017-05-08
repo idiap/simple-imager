@@ -1,0 +1,78 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Logging functions
+
+# Generic
+_siLog() {
+  local prefix="${1}" level=${2} message="${3}" color nocolor='\033[0m'
+
+  case ${level} in
+    0) color='\033[1;31m';;  # error: light red
+    1) color='\033[1;33m';;  # warning: yellow
+    2) color='\033[1;32m';;  # info: light green
+    3) color='\033[1;36m';;  # notice: light cyan
+    4) color='\033[1;35m';;  # debug: light purple
+    5) color='\033[1;34m';;  # shell: light blue
+  esac
+  [ ${SI_CONSOLE_LEVEL} -ge ${level} ] && printf "${color}${prefix}:${nocolor} " && echo "${message}"
+  [ ${SI_LOGFILE_LEVEL} -ge ${level} ] && echo "$(date +'%Y-%d-%mT%H:%M:%S') ${prefix}: ${message}" >> "${SI_LOG_DIR}/siInstallLog.log"
+  [ ${SI_SYSLOG_LEVEL} -ge ${level} ] && siSyslogLog "${prefix}: ${message}"
+  [ ${SI_MONITOR_LEVEL} -ge ${level} ] && siMonitorLog "${prefix}: ${message}"
+}
+
+# Error (level=0)
+siLogError() {
+  siMonitorError
+  _siLog 'ERROR' 0 "$*" >&2
+  return 0
+}
+
+# Warning (level=1)
+siLogWarning() {
+  _siLog 'WARNING' 1 "$*" >&2
+  return 0
+}
+
+# Info (level=2)
+siLogInfo() {
+  _siLog 'INFO' 2 "$*"
+  return 0
+}
+
+# Notice (level=3)
+siLogNotice() {
+  _siLog 'NOTICE' 3 "$*"
+  return 0
+}
+
+# Debug (level=4)
+siLogDebug() {
+  _siLog 'DEBUG' 4 "$*"
+  return 0
+}
+
+# Shell (level=5)
+siLogShell() {
+  _siLog 'SHELL' 5 "$*"
+  return 0
+}
+
+# Progress
+siLogProgress() {
+  siMiscIsTrue "${SI_LOG_PROGRESS}" || return
+  local message="${1}" percent="${2}" speed="${3}"
+
+  local bytes="$(siMiscToBytes "${speed}")"
+  [ ${SI_CONSOLE_LEVEL} -ge 3 ] && printf "\033[0;36mPROGRESS:\033[0m " && echo "${message} (${percent%%%}% @ ${speed})"
+  [ ${SI_LOGFILE_LEVEL} -ge 3 ] && echo "$(date +'%Y-%d-%mT%H:%M:%S') PROGRESS: ${message} (${percent%%%}% @ ${speed})" >> "${SI_LOG_DIR}/siInstallLog.log"
+  [ ${SI_SYSLOG_LEVEL} -ge 3 ] && siSyslogLog "PROGRESS: ${message} (${percent%%%}% @ ${speed})"
+  [ ${SI_MONITOR_LEVEL} -ge 3 ] && siMonitorLog "PROGRESS: ${message}" ${percent%%%} ${bytes}
+  return 0
+}
+

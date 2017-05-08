@@ -1,0 +1,40 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@ --with systemd
+
+override_dh_install:
+	# Create man pages
+	mkdir -p debian/tmp/usr/share/man/man1
+	help2man \
+		--name 'Simple Imager - Pull source (golden client) image' \
+		--help-option '--help' --version-string $(VERSION) --no-discard-stderr --no-info \
+		./usr/sbin/si_pull | fgrep -v 'invalid option' > debian/tmp/usr/share/man/man1/si_pull.1
+	help2man \
+		--name 'Simple Imager - Pack images tarballs and torrents' \
+		--help-option '--help' --version-string $(VERSION) --no-discard-stderr --no-info \
+		./usr/sbin/si_pack | fgrep -v 'invalid option' > debian/tmp/usr/share/man/man1/si_pack.1
+	help2man \
+		--name 'Simple Imager - Server services' \
+		--help-option '--help' --version-string $(VERSION) --no-discard-stderr --no-info \
+		./usr/sbin/si_server | fgrep -v 'invalid option' > debian/tmp/usr/share/man/man1/si_server.1
+
+	# Install
+	dh_install
+
+	# Remove GIT (empty) diretory placeholders
+	find debian -type f -name .gitplaceholder -delete
+
+override_dh_installinit:
+	dh_installinit --name=si_server --onlyscripts
+
+override_dh_installdocs:
+	mkdir -p debian/docs.d
+	cp ../README debian/docs.d/README.SimpleImager
+	cp ../CREDITS.* debian/docs.d/.
+	dh_installdocs
+
+override_dh_clean:
+	dh_clean
+	rm -rf debian/docs.d
+

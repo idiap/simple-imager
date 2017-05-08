@@ -1,0 +1,109 @@
+#!/bin/sh
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Paths
+export PATH='/sbin:/bin:/usr/sbin:/usr/bin'
+export LD_LIBRARY_PATH='/lib:/usr/lib'
+
+
+## System initialization
+cat /etc/issue
+
+# System resources
+echo "INFO: [${0##*/}] Creating/mounting system resources:"
+for directory in '/sys' '/dev' '/proc' '/dev' '/run'; do
+  echo "> ${directory}"
+  [ ! -d "${directory}" ] && mkdir -p "${directory}"
+done
+echo '* DONE !'
+# ... mount
+mount -t sysfs sysfs /sys
+mount -t devtmpfs -o mode=0755 udev /dev
+mount -t proc proc /proc
+mount -t tmpfs -o mode=0755 tmpfs /run
+
+# Modules blacklist
+echo "INFO: [${0##*/}] Blacklisting module:"
+# ... from boot (kernel) parameters
+blacklist=''
+for option in $(cat /proc/cmdline); do
+  case "${option%%=*}" in
+    'BLACKLIST')
+      blacklist="${blacklist}${blacklist:+ }${option#*=}"
+    ;;
+  esac
+done
+# ... to modprobe configuration file
+echo '## Modules blacklisted at boot (BLACKLIST kernel parameters)' > /etc/modprobe.d/boot_blacklist.conf
+for module in ${blacklist}; do
+  echo "> ${module}"
+  echo "blacklist ${module}" >> /etc/modprobe.d/boot_blacklist.conf
+done
+echo '* DONE !'
+
+# UDev
+echo "INFO: [${0##*/}] Starting UDev..."
+# ... clear kernel UDev events (irrelevant before we start the daemon)
+if [ -e '/sys/kernel/uevent_helper' ]; then
+  echo > '/sys/kernel/uevent_helper'
+fi
+# ... create resources
+if [ -e '/etc/udev/init.conf' ]; then
+  grep -Ev '^\s*(#|$)' /etc/udev/init.conf | while read type name args; do
+    device="/dev/${name}"
+    [ -e "${device}" ] && echo "INFO: [${0##*/}] Device already exists: ${device}" && continue
+    case "${type}" in
+      D) mkdir -p "${device}";;
+      L) ln -s "${args}" "${device}";;
+      M) mknod -m 600 "${device}" ${args};;
+      *) echo "ERROR: [${0##*/}] Invalid device type: ${type} (${device})" >&2; continue;;
+    esac
+    echo "INFO: [${0##*/}] Device successfully created: ${device} (${type})"
+  done
+fi
+# ... start daemon
+if udevd --daemon; then
+  echo "INFO: [${0##*/}] Daemon successfully started"
+else
+  echo "WARNING: [${0##*/}] Error while starting UDev daemon; code=${?}" >&2
+  sleep 5
+fi
+udevadm trigger --action=add
+sleep 2
+udevadm settle
+echo "INFO: [${0##*/}] Done (starting UDev)!"
+
+# Pseudo-terminal resources
+echo "INFO: [${0##*/}] Creating/mounting pseudo-terminal resources:"
+[ ! -e '/dev/pts' ] && mkdir -p /dev/pts
+mount devpts /dev/pts -t devpts -n
+echo '> /dev/pts'
+echo '* DONE !'
+
+# Console logging level (INFO)
+dmesg -n 6
+
+
+## Simple Imager initialization
+
+# Environment (si*)
+. /etc/simple-imager/environment
+
+# Variables (SI_*)
+# ... initialize
+siVariablesInit
+# ... load
+siVariablesLoad
+# ... boot (kernel) parameters
+siVariablesSaveBoot
+
+# Logs
+# ... console output (see /etc/inittab)
+touch /var/log/si_install.log
+

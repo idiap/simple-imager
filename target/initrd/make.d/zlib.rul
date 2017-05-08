@@ -1,0 +1,84 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+ZLIB_INFO			:= http://zlib.net/
+ZLIB_VERSION		:= 1.2.11
+ZLIB_TARBALL		:= zlib-$(ZLIB_VERSION).tar.xz
+ZLIB_URL			:= http://zlib.net/$(ZLIB_TARBALL)
+ZLIB_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(ZLIB_TARBALL)
+ZLIB_DIR			:= $(INITRD_SOURCE_DIR)/zlib-$(ZLIB_VERSION)
+
+
+## Targets
+.PHONY: zlib_download
+zlib_download: $(ZLIB_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(ZLIB_DOWNLOAD)
+
+.PHONY: zlib_configure
+zlib_configure: $(ZLIB_DIR).configure
+
+.PHONY: zlib_build
+zlib_build: $(ZLIB_DIR).build
+
+.PHONY: zlib_install
+zlib_install: $(ZLIB_DIR).install
+INITRD_BUILD_ALL += $(ZLIB_DIR).install
+
+.PHONY: zlib_clean
+zlib_clean: $(ZLIB_DIR).clean
+
+
+## Recipes
+# zlib's configure makes static or shared, but not both; we must differientiate each case
+$(ZLIB_DIR).configure-static: $(ZLIB_DIR).unpack
+	cd $(ZLIB_DIR) \
+	&& $(MAKE) distclean \
+	&& ./configure \
+	     --prefix=/usr
+	touch $@
+
+$(ZLIB_DIR).configure-shared: $(ZLIB_DIR).unpack
+	cd $(ZLIB_DIR) \
+	&& $(MAKE) distclean \
+	&& ./configure \
+	     --prefix=/usr \
+	     --shared
+	touch $@
+
+$(ZLIB_DIR).build-static: $(ZLIB_DIR).configure-static
+	cd $(ZLIB_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(ZLIB_DIR).build-shared: $(ZLIB_DIR).configure-shared
+	cd $(ZLIB_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(ZLIB_DIR).build: $(ZLIB_DIR).build-static $(ZLIB_DIR).build-shared
+	touch $@
+
+$(ZLIB_DIR).install: $(ZLIB_DIR).build
+	cd $(ZLIB_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(ZLIB_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(ZLIB_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(ZLIB_DOWNLOAD) -x
+	touch $@
+
+$(ZLIB_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(ZLIB_DIR)
+	$(DOWNLOAD) $(ZLIB_TARBALL) $(ZLIB_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(ZLIB_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(ZLIB_DIR)*
+

@@ -1,0 +1,45 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Miscellaneous functions
+
+# Boolean
+siMiscIsTrue() {
+  local value="${1}"
+
+  case "${value:0:1}" in
+    '1'|'Y'|'y'|'T'|'t') return 0
+  esac
+  return 1
+}
+
+siMiscIsFalse() {
+  local value="${1}"
+
+  case "${value:0:1}" in
+    '1'|'Y'|'y'|'T'|'t') return 1
+  esac
+  return 0
+}
+
+# Parser
+siMiscToBytes() {
+  local input="${1}"
+  local value
+  # Look for supported units
+  value="${input%TB*}"; [ "${value}" != "${input}" ] && echo $(( 1000000000000*${value%.*} )) && return
+  value="${input%TiB*}"; [ "${value}" != "${input}" ] && echo $(( 1099511627776*${value%.*} )) && return
+  value="${input%GB*}"; [ "${value}" != "${input}" ] && echo $(( 1000000000*${value%.*} )) && return
+  value="${input%GiB*}"; [ "${value}" != "${input}" ] && echo $(( 1073741824*${value%.*} )) && return
+  value="${input%MB*}"; [ "${value}" != "${input}" ] && echo $(( 1000000*${value%.*} )) && return
+  value="${input%MiB*}"; [ "${value}" != "${input}" ] && echo $(( 1048576*${value%.*} )) && return
+  value="${input%kB*}"; [ "${value}" != "${input}" ] && echo $(( 1000*${value%.*} )) && return
+  value="${input%kiB*}"; [ "${value}" != "${input}" ] && echo $(( 1024*${value%.*} )) && return
+  value="${input%B*}"; [ "${value}" != "${input}" ] && echo $(( 1*${value%.*} )) && return
+}
+

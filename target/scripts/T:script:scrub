@@ -1,0 +1,55 @@
+#!/bin/sh
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Load Simple Imager resources
+
+# Environment
+. /etc/simple-imager/environment
+siPrintBanner "DISK(S) SCRUB [${0##*/}]"
+
+# Variables
+siVariablesLoad
+
+
+## Scrub disk(s)
+siMonitorInstall
+siPrintHeader "Scrubbing Disk(s)"
+siLogInfo "[${0##*/}] Scrubbing disk(s)"
+
+# Device
+if [ -z "${SI_DISK_DEV}" -o "${SI_DISK_DEV}" == '%AUTO%' ]; then
+  siLogError "[${0##*/}] Invalid disk (${SI_DISK_DEV})" && siConsoleError
+fi
+siLogDebug "[${0##*/}] Target disk: ${SI_DISK_DEV}"
+
+# Confirm dangerous actions
+if siMiscIsFalse "${SI_FORCE}"; then
+  siPrintConfirmRequired "All specified disks (ALL DATA) will be WIPED (${SI_DISK_DEV}) !"
+fi
+
+# Loop through specified disk(s)
+for disk in ${SI_DISK_DEV//,/ }; do
+  [ "${disk:0:5}" != '/dev/' ] && disk="/dev/${disk}"
+  siShellCommand scrub -p dod "${disk}"
+done
+
+
+## DONE !
+siMonitorComplete
+siLogInfo "[${0##*/}] Done with scrubbing disks"
+
+# Take network interface down
+siShellCommand ifconfig ${SI_NET_DEV} down
+
+# Reboot
+if siMiscIsFalse "${SI_CONFIRM}"; then
+  siShellCommand halt -f
+else
+  siConsole
+fi
+

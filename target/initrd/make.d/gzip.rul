@@ -1,0 +1,70 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+GZIP_INFO			:= https://www.gnu.org/software/gzip/
+GZIP_VERSION		:= 1.8
+GZIP_TARBALL		:= gzip-$(GZIP_VERSION).tar.xz
+GZIP_URL			:= http://ftp.gnu.org/gnu/gzip/$(GZIP_TARBALL)
+GZIP_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(GZIP_TARBALL)
+GZIP_DIR			:= $(INITRD_SOURCE_DIR)/gzip-$(GZIP_VERSION)
+
+
+## Targets
+.PHONY: gzip_download
+gzip_download: $(GZIP_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(GZIP_DOWNLOAD)
+
+.PHONY: gzip_configure
+gzip_configure: $(GZIP_DIR).configure
+
+.PHONY: gzip_build
+gzip_build: $(GZIP_DIR).build
+
+.PHONY: gzip_install
+gzip_install: $(GZIP_DIR).install
+INITRD_BUILD_ALL += $(GZIP_DIR).install
+
+.PHONY: gzip_clean
+gzip_clean: $(GZIP_DIR).clean
+
+
+## Recipes
+$(GZIP_DIR).configure: $(GZIP_DIR).unpack
+	cd $(GZIP_DIR) \
+	&& CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include" \
+	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   ./configure \
+	     --prefix=/usr \
+	     --disable-rpath \
+	     --disable-silent-rules
+	touch $@
+
+$(GZIP_DIR).build: $(GZIP_DIR).configure
+	cd $(GZIP_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(GZIP_DIR).install: $(GZIP_DIR).build
+	cd $(GZIP_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(GZIP_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(GZIP_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(GZIP_DOWNLOAD) -x
+	touch $@
+
+$(GZIP_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(GZIP_DIR)
+	$(DOWNLOAD) $(GZIP_TARBALL) $(GZIP_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(GZIP_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(GZIP_DIR)*
+

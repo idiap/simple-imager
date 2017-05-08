@@ -1,0 +1,13 @@
+## si_source (RSync daemon) settings
+#  (allowing a source host image to be retrieved by the server)
+
+# Space-separated list of hostnames or IP addresses allowed to connect to
+# the daemon (rsyncd.conf: hosts_allow).
+#SI_SOURCE_HOSTS='127.0.0.1'
+
+# Specific IP address to bind the daemon to (rsyncd.conf: address).
+#SI_SOURCE_BIND='*'
+
+# TCP port to have the daemon listen on (rsyncd.conf: port).
+#SI_SOURCE_PORT=873
+

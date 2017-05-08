@@ -1,0 +1,131 @@
+#!/bin/bash
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Usage
+[ $# -lt 1 -o "${1##*-}" == 'help' ] && cat << EOF && exit 1
+USAGE:
+  ${0##*/} {start|stop|restart|status}
+
+SYSNOPSIS:
+  Launch the monitor service, allowing target hosts to report their installation
+  status.
+
+ENVIRONMENT:
+  The following environment variables are available to customize the packaging,
+  which default value can be overriden in /etc/default/si_monitor:
+
+  SI_MONITOR_DATABASE_FILE='/var/lib/simple-imager/si_monitor.sqlite'
+    Monitoring (SQLite) database file
+
+  SI_MONITOR_HOOKS_DIR='/etc/simple-imager/si_monitor.hooks.d'
+    Monitoring hooks (directory) path
+
+  SI_MONITOR_BIND='*'
+    Specific IP address to bind the daemon to.
+
+  SI_MONITOR_PORT=8181
+    TCP port to have the daemon listen on.
+EOF
+
+# Arguments
+MY_ACTION="${1}"
+
+
+## Parameters
+# ... environment
+MY_MONITOR_START="${SI_MONITOR_START}"
+MY_MONITOR_PROTOCOL="${SI_MONITOR_PROTOCOL}"
+MY_MONITOR_DATABASE_FILE="${SI_MONITOR_DATABASE_FILE}"
+MY_MONITOR_HOOKS_DIR="${SI_MONITOR_HOOKS_DIR}"
+MY_MONITOR_BIND="${SI_MONITOR_BIND}"
+MY_MONITOR_PORT="${SI_MONITOR_PORT}"
+# ... configuration
+[ -e /etc/default/si_monitor ] && . /etc/default/si_monitor
+[ -z "${MY_MONITOR_START}" ] && MY_MONITOR_START="${SI_MONITOR_START}"
+[ -z "${MY_MONITOR_PROTOCOL}" ] && MY_MONITOR_PROTOCOL="${SI_MONITOR_PROTOCOL}"
+[ -z "${MY_MONITOR_DATABASE_FILE}" ] && MY_MONITOR_DATABASE_FILE="${SI_MONITOR_DATABASE_FILE}"
+[ -z "${MY_MONITOR_HOOKS_DIR}" ] && MY_MONITOR_HOOKS_DIR="${SI_MONITOR_HOOKS_DIR}"
+[ -z "${MY_MONITOR_BIND}" ] && MY_MONITOR_BIND="${SI_MONITOR_BIND}"
+[ -z "${MY_MONITOR_PORT}" ] && MY_MONITOR_PORT="${SI_MONITOR_PORT}"
+# ... magic
+[ "${MY_MONITOR_BIND}" == '*' ] && MY_MONITOR_BIND=
+# ... default
+[ -z "${MY_MONITOR_START}" ] && MY_MONITOR_START='no'
+[ -z "${MY_MONITOR_PROTOCOL}" ] && MY_MONITOR_PROTOCOL='restful'
+[ -z "${MY_MONITOR_DATABASE_FILE}" ] && MY_MONITOR_DATABASE_FILE='/var/lib/simple-imager/si_monitor.sqlite'
+[ -z "${MY_MONITOR_HOOKS_DIR}" ] && MY_MONITOR_HOOKS_DIR='/etc/simple-imager/si_monitor.hooks.d'
+[ -z "${MY_MONITOR_PORT}" ] && MY_MONITOR_PORT='8080'
+# ... runtime
+MY_RUNTIME_PID='/var/run/si_monitor.pid'
+MY_RUNTIME_LOCK='/var/run/si_monitor.pid.lock'
+MY_RUNTIME_LOG="/var/log/simple-imager/si_monitor.${MY_MONITOR_PROTOCOL}.log"
+
+
+## Actions (pre-handling)
+case "${MY_ACTION}" in
+
+  start)
+    [ "${MY_MONITOR_START}" != 'yes' ] && echo "WARNING: Monitor service is not configured to start; bailing out" >&2 && exit 0
+    # Cont'd below
+    ;;
+
+  stop)
+    # PIDs
+    [ -e "${MY_RUNTIME_PID}" ] && pid=$(head -n 1 "${MY_RUNTIME_PID}") || pid=
+    # Kill
+    [ -n "${pid}" ] && kill ${pid}
+    # Wait for services to terminate
+    sleep 1
+    # Check
+    [ -n "${pid}" -a -e "/proc/${pid}" ] && echo "ERROR: Failed to terminate the monitor service (${pid})" >&2 && exit 1
+    # Clean-up
+    rm -f "${MY_RUNTIME_PID}" "${MY_RUNTIME_LOCK}"
+    exit 0
+    ;;
+
+  restart)
+    "${0}" stop || exit 1
+    [ "${MY_MONITOR_START}" != 'yes' ] && echo "WARNING: Monitor service is not configured to start; bailing out" >&2 && exit 0
+    # Cont'd below
+    ;;
+
+  status)
+    [ -e "${MY_RUNTIME_PID}" ] && pid=$(head -n 1 "${MY_RUNTIME_PID}") || pid=
+    [ -n "${pid}" -a ! -e "/proc/${pid}" ] && pid= && rm -f "${MY_RUNTIME_PID}"
+    [ -n "${pid}" ] && echo "INFO: Monitor service is running (${pid})" || echo 'INFO: Monitor service is not running'
+    exit 0
+    ;;
+
+  *)
+    echo "ERROR: Invalid argument (${MY_ACTION})" >&2
+    exit 1
+    ;;
+
+esac
+
+
+## Check
+MY_MONITOR_EXEC="si_monitor.${MY_MONITOR_PROTOCOL}"
+[ -z "$(which "${MY_MONITOR_EXEC}")" ] && echo "ERROR: Missing '${MY_MONITOR_EXEC}' executable (wrong protocol ?)" >&2 && exit 1
+[ -e "${MY_RUNTIME_PID}" ] && pid=$(head -n 1 "${MY_RUNTIME_PID}") || pid=
+[ -n "${pid}" -a -e "/proc/${pid}" ] && echo "ERROR: Monitor service is already running (${pid})" >&2 && exit 1
+rm -f "${MY_RUNTIME_PID}"
+ps="$(netstat -Wtlnp | awk "{if(\$4~\":${MY_MONITOR_PORT}\$\") print \$7}" | sort -u | tr '\n' ',')"; ps="${ps%%,}"
+[ -n "${ps}" ] && echo "ERROR: Cannot start monitor service; a process is already listening on port ${MY_MONITOR_PORT} (${ps})" >&2 && exit 1
+
+
+## Start
+echo -n 'INFO: Starting monitor service... '
+"${MY_MONITOR_EXEC}" \
+  --pid "${MY_RUNTIME_PID}" --log "${MY_RUNTIME_LOG}" \
+  ${MY_MONITOR_BIND:+--bind ${MY_MONITOR_BIND}} --port ${MY_MONITOR_PORT} \
+  --database "${MY_MONITOR_DATABASE_FILE}" --hooks "${MY_MONITOR_HOOKS_DIR}"
+[ $? -ne 0 ] && echo 'ERROR' && exit 1
+sleep 1
+echo "OK ($(head -n 1 "${MY_RUNTIME_PID}"))"
+

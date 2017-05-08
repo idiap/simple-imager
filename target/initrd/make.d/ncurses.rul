@@ -1,0 +1,101 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+NCURSES_INFO		:= https://www.gnu.org/software/ncurses/
+NCURSES_VERSION		:= 6.0
+NCURSES_TARBALL		:= ncurses-$(NCURSES_VERSION).tar.gz
+NCURSES_URL			:= http://ftp.gnu.org/gnu/ncurses/$(NCURSES_TARBALL)
+NCURSES_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(NCURSES_TARBALL)
+NCURSES_DIR			:= $(INITRD_SOURCE_DIR)/ncurses-$(NCURSES_VERSION)
+NCURSES_PATCHES 	:= $(shell find $(INITRD_PATCH_DIR) -type f -name "ncurses.*.patch" -exec basename {} \; | sort)
+
+
+## Targets
+.PHONY: ncurses_download
+ncurses_download: $(NCURSES_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(NCURSES_DOWNLOAD)
+
+.PHONY: ncurses_configure
+ncurses_configure: $(NCURSES_DIR).configure
+
+.PHONY: ncurses_build
+ncurses_build: $(NCURSES_DIR).build
+
+.PHONY: ncurses_install
+ncurses_install: $(NCURSES_DIR).install
+INITRD_BUILD_ALL += $(NCURSES_DIR).install
+
+.PHONY: ncurses_clean
+ncurses_clean: $(NCURSES_DIR).clean
+
+
+## Recipes
+$(NCURSES_DIR).configure: $(NCURSES_DIR).patch
+	cd $(NCURSES_DIR) \
+	&& CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include" \
+	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   ./configure \
+	     --prefix=/usr \
+	     --without-ada \
+	     --without-debug \
+	     --without-gpm \
+	     --without-manpages \
+	     --without-profile \
+	     --without-progs \
+	     --without-tests \
+	     --with-pkg-config-libdir=/usr/lib/pkgconfig \
+	     --with-shared \
+	     --with-termlib=tinfo \
+	     --with-ticlib=tic \
+	     --with-versioned-syms \
+	     --with-xterm-kbs=del \
+	     --disable-ext-funcs \
+	     --disable-lp64 \
+	     --disable-nls \
+	     --disable-rpath \
+	     --disable-termcap \
+	     --enable-const \
+	     --enable-echo \
+	     --enable-pc-files \
+	     --enable-symlinks
+	touch $@
+
+$(NCURSES_DIR).build: $(NCURSES_DIR).configure
+	cd $(NCURSES_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(NCURSES_DIR).install: $(NCURSES_DIR).build
+	cd $(NCURSES_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	@echo "## Remove all terminfo files, except the most common ones (see ncurses.terminfo.config)"
+	cd $(INITRD_IMAGE_DIR)/usr/share \
+	&& mv terminfo terminfo.orig \
+	&& rsync -av --include-from=$(INITRD_CONFIG_DIR)/ncurses.terminfo.config --exclude '*' terminfo.orig/ terminfo/ \
+	&& rm -rf terminfo.orig
+	touch $@
+
+$(NCURSES_DIR).patch: $(NCURSES_DIR).unpack
+	cd $(NCURSES_DIR) \
+	&& $(foreach patch, $(NCURSES_PATCHES), echo -n "Applying patch $(patch)..." && cat ${INITRD_PATCH_DIR}/$(patch) | patch -s -p1 && echo &&) echo 'Done (applying patches)'
+	touch $@
+
+$(NCURSES_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(NCURSES_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(NCURSES_DOWNLOAD) -x
+	touch $@
+
+$(NCURSES_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(NCURSES_DIR)
+	$(DOWNLOAD) $(NCURSES_TARBALL) $(NCURSES_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(NCURSES_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(NCURSES_DIR)*
+

@@ -1,0 +1,15 @@
+[Unit]
+Description=Simple Imager server services
+DefaultDependencies=no
+After=remote-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/si_server start
+ExecStop=/usr/sbin/si_server stop
+ExecReload=/usr/sbin/si_server reload
+
+[Install]
+WantedBy=multi-user.target
+

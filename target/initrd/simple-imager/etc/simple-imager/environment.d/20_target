@@ -1,0 +1,191 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Target functions
+
+# Initialize
+_siTargetInitGenders() {
+  local config="${1}"
+
+  # Import installation parameters
+  local parameter name value config_vars="/tmp/genders.vars"
+  siShellCommand nodeattr -f "${config}" -l "${HOSTNAME}" | grep '^si_[^=]*=' > "${config_vars}"
+  [ $? -ne 0 ] && siLogError "[Target:init(genders)] Failed to dump installation parameters from file (${config})" && return 1
+  for parameter in $(cat "${config_vars}"); do
+    siLogDebug "[Target:init(genders)] Parsing parameter (${parameter})"
+    name="${parameter%%=*}"
+    value="${parameter#*=}"
+    case "${name}" in
+      'si_group') [ "${SI_GROUP}" == '%AUTO%' ] && siVariablesSave SI_GROUP "${value}";;
+      'si_image') [ "${SI_IMAGE}" == '%AUTO%' ] && siVariablesSave SI_IMAGE "${value}";;
+      'si_overrides') [ "${SI_OVERRIDES}" == '%AUTO%' ] && siVariablesSave SI_OVERRIDES "${value//:/,}";;
+      'si_script') [ "${SI_SCRIPT}" == '%AUTO%' ] && siVariablesSave SI_SCRIPT "${value}";;
+      'si_disk_dev') [ "${SI_DISK_DEV}" == '%AUTO%' ] && siVariablesSave SI_DISK_DEV "${value}";;
+      'si_disk_part') [ "${SI_DISK_PART}" == '%AUTO%' ] && siVariablesSave SI_DISK_PART "${value}";;
+      'si_disk_wipe') [ "${SI_DISK_WIPE}" == '%AUTO%' ] && siVariablesSave SI_DISK_WIPE "${value}";;
+      'si_disk_target') [ "${SI_DISK_TARGET}" == '%AUTO%' ] && siVariablesSave SI_DISK_TARGET "${value}";;
+      'si_disk_staging')
+        [ "${SI_DISK_STAGING}" == '%AUTO%' ] && siVariablesSave SI_DISK_STAGING "${value}"
+        [ "${SI_DISK_STAGING_IMAGE}" == '%AUTO%' ] && siVariablesSave SI_DISK_STAGING_IMAGE "${value}"
+        [ "${SI_DISK_STAGING_OVERRIDES}" == '%AUTO%' ] && siVariablesSave SI_DISK_STAGING_OVERRIDES "${value}"
+        ;;
+      'si_reboot_delay') [ "${SI_REBOOT_DELAY}" == '%AUTO%' ] && siVariablesSave SI_REBOOT_DELAY "${value}";;
+      *) siLogWarning "[Target:init(genders)] Invalid parameter (${parameter}); ignoring";;
+    esac
+  done
+}
+
+_siTargetInitCluster() {
+  local config="${1}"
+
+  # Import installation parameters
+  # ... group
+  if [ "${SI_GROUP}" == '%AUTO%' ]; then
+    local group="$(awk -F':' "{if(\$1==\"${HOSTNAME}\") print \$2}" "${config}" | sort -u)"
+    siVariablesSave SI_GROUP "${group}"
+  fi
+  # ... image
+  if [ "${SI_IMAGE}" == '%AUTO%' ]; then
+    local image="$(awk -F':' "{if(\$1==\"${HOSTNAME}\") print \$3}" "${config}" | sort -u)"
+    siVariablesSave SI_IMAGE "${image}"
+  fi
+  # ... overrides
+  if [ "${SI_OVERRIDES}" == '%AUTO%' ]; then
+    local overrides="$(awk -F':' "{if(\$1==\"${HOSTNAME}\") print \$4}" "${config}" | sort -u | tr '\n' ',')"
+    siVariablesSave SI_OVERRIDES "${overrides%%,}"
+  fi
+}
+
+siTargetInit() {
+  siLogNotice '[Target:init] Initializing installation'
+  [ -z "${SI_VARIABLES}" ] && siLogError "[Target:init] Simple Imager environment is undefined (please call 'siVariablesLoad' beforehand)" && return 1
+
+  # Verbose ?
+  local verbose
+  siMiscIsTrue "${SI_LOG_VERBOSE}" && verbose='yes'
+
+  # Retrieve installation scripts
+  siLogDebug '[Target:init] Retrieving installation scripts'
+  siShellCommand rsync ${verbose:+-v} -aHS "rsync://${SI_SERVER}/scripts/" "${SI_SCRIPTS_DIR}/"
+
+  # Retrieve torrent resources
+  if [ "${SI_SERVER_PROTOCOL_IMAGE}" == 'bittorrent' -o "${SI_SERVER_PROTOCOL_OVERRIDES}" == 'bittorrent' ]; then
+    siLogDebug '[Target:init] Retrieving installation torrents'
+    siShellCommand rsync ${verbose:+-v} -aHS "rsync://${SI_SERVER}/torrents/" "${SI_TORRENTS_DIR}/"
+  fi
+
+  # Check required parameters
+  [ -z "${HOSTNAME}" ] && siLogError "[Target:init] Undefined hostname (HOSTNAME)" && return 1
+
+  # Load installation configuration
+  siLogDebug '[Target:init] Loading installation configuration'
+  local config_genders="${SI_SCRIPTS_DIR}/genders" config_cluster="${SI_SCRIPTS_DIR}/cluster.txt"
+  if [ -f "${config_genders}" ]; then
+    _siTargetInitGenders "${config_genders}"
+  elif [ -f "${config_cluster}" ]; then
+    siLogWarning "[Target:init] Using legacy installation configuration file (${config_cluster})"
+    _siTargetInitCluster "${config_cluster}"
+  else
+    siLogError "[Target:init] Missing/invalid installation configuration file (${config_genders})" && return 1
+  fi
+
+  # Installation script
+  if [ "${SI_SCRIPT}" == '%AUTO%' ]; then
+    local script s_name s_suffix
+    for s_name in "H:${HOSTNAME}" "S:${SI_HOSTSERIE}" "G:${SI_GROUP:-none}" "I:${SI_IMAGE:-none}" 'A:all'; do
+      for s_suffix in '.ash' '.sh' ''; do
+        [ -f "${SI_SCRIPTS_DIR}/${s_name}${s_suffix}" ] && script="${s_name}${s_suffix}" && break 2
+      done
+    done
+    [ -z "${script}" ] && siLogError "[Target:init] No installation script found for target (${HOSTNAME})" && return 1
+    siVariablesSave SI_SCRIPT "${script}"
+  fi
+
+  # Check required parameters (cont'd)
+  [ -z "${SI_SCRIPT}" ] && siLogError "[Target:init] Undefined installation script (SI_SCRIPT)" && return 1
+
+  # Defaults
+  [ "${SI_GROUP}" == '%AUTO%' ] && siVariablesSave SI_GROUP ''
+  [ "${SI_IMAGE}" == '%AUTO%' ] && siVariablesSave SI_IMAGE ''
+  [ "${SI_OVERRIDES}" == '%AUTO%' ] && siVariablesSave SI_OVERRIDES ''
+  [ "${SI_DISK_PART}" == '%AUTO%' ] && siVariablesSave SI_DISK_PART 'yes'
+  [ "${SI_DISK_WIPE}" == '%AUTO%' ] && siVariablesSave SI_DISK_WIPE 'yes'
+  [ "${SI_DISK_TARGET}" == '%AUTO%' ] && siVariablesSave SI_DISK_TARGET '/target'
+  [ "${SI_DISK_STAGING}" == '%AUTO%' ] && siVariablesSave SI_DISK_STAGING '/staging'
+  [ "${SI_DISK_STAGING_IMAGE}" == '%AUTO%' ] && siVariablesSave SI_DISK_STAGING_IMAGE '/staging'
+  [ "${SI_DISK_STAGING_OVERRIDES}" == '%AUTO%' ] && siVariablesSave SI_DISK_STAGING_OVERRIDES '/staging'
+  [ "${SI_REBOOT_DELAY}" == '%AUTO%' ] && siVariablesSave SI_REBOOT_DELAY 0
+
+  # Done
+  siLogNotice "[Target:init] Ready to proceed with installation"
+  siLogNotice "[Target:init]   Group:       ${SI_GROUP:-none}"
+  siLogNotice "[Target:init]   Image:       ${SI_IMAGE:-none}"
+  siLogNotice "[Target:init]   Override(s): ${SI_OVERRIDES:-none}"
+  siLogNotice "[Target:init]   Script:      ${SI_SCRIPT}"
+  siLogNotice "[Target:init]   Disk:        ${SI_DISK_DEV}; part:${SI_DISK_PART} / wipe:${SI_DISK_WIPE}"
+  return 0
+}
+
+# Installation scripts
+
+# ... pre-installation
+siTargetPreInstall() {
+  siLogNotice '[Target:pre-install] Running pre-installation scripts'
+  [ -z "${SI_VARIABLES}" ] && siLogError "[Target:pre-install] Simple Imager environment is undefined (please call 'siVariablesLoad' beforehand)" && return 1
+
+  # Run pre-installation scripts
+  local ret=0 script
+  [ ! -d "${SI_SCRIPTS_DIR}/pre-install.d/" ] && return 0
+  for script in $(find "${SI_SCRIPTS_DIR}/pre-install.d/" -maxdepth 1 -type f \( -name '*-A:all:*' -o -name "*-I:${SI_IMAGE:-none}:*" -o -name "*-G:${SI_GROUP:-none}:*" -o -name "*-S:${SI_HOSTSERIE}:*" -o -name "*-H:${HOSTNAME}:*" \) | sort); do
+    [ ! -x "${script}" ] && siLogWarning "[Target:pre-install] Script is not executable (${script}); skipping!" && continue
+    siPrintConfirmOptional "[Target:pre-install] About to execute script (${script}); proceed ?"
+    siLogDebug "[Target:pre-install] Running script (${script})"
+    siShellCommand "${script}"
+    [ $? -ne 0 ] && siLogWarning "[Target:pre-install] Script return non-zero exit code (${script})" && ret=1
+  done
+
+  # Done
+  return ${ret}
+}
+
+# ... installation
+siTargetInstall() {
+  siLogNotice '[Target:install] Running installation script'
+  [ -z "${SI_VARIABLES}" ] && siLogError "[Target:install] Simple Imager environment is undefined (please call 'siVariablesLoad' beforehand)" && return 1
+
+  # Run pre-installation scripts
+  local script="${SI_SCRIPTS_DIR}/${SI_SCRIPT}"
+  [ ! -x "${script}" ] && siLogWarning "[Target:install] Script is not executable (${script})" && return 1
+  siLogDebug "[Target:install] Running script (${script})"
+  siShellCommand "${script}"
+  [ $? -ne 0 ] && siLogWarning "[Target:install] Script return non-zero exit code (${script})" && return 1
+
+  # Done
+  return 0
+}
+
+# ... post-installation
+siTargetPostInstall() {
+  siLogNotice '[Target:post-install] Running post-installation scripts'
+  [ -z "${SI_VARIABLES}" ] && siLogError "[Target:post-install] Simple Imager environment is undefined (please call 'siVariablesLoad' beforehand)" && return 1
+
+  # Run post-installation scripts
+  local ret=0 script
+  [ ! -d "${SI_SCRIPTS_DIR}/post-install.d/" ] && return 0
+  for script in $(find "${SI_SCRIPTS_DIR}/post-install.d/" -maxdepth 1 -type f \( -name '*-A:all:*' -o -name "*-I:${SI_IMAGE:-none}:*" -o -name "*-G:${SI_GROUP:-none}:*" -o -name "*-S:${SI_HOSTSERIE}:*" -o -name "*-H:${HOSTNAME}:*" \) | sort); do
+    [ ! -x "${script}" ] && siLogWarning "[Target:post-install] Script is not executable (${script}); skipping!" && continue
+    siPrintConfirmOptional "[Target:post-install] About to execute script (${script}); proceed ?"
+    siLogDebug "[Target:post-install] Running script (${script})"
+    siShellCommand "${script}"
+    [ $? -ne 0 ] && siLogWarning "[Target:post-install] Script return non-zero exit code (${script})" && ret=1
+  done
+
+  # Done
+  return ${ret}
+}
+

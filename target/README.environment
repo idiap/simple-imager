@@ -1,0 +1,33 @@
+Simple Imager - Target Installation Environment
+***********************************************
+
+Simple Imager Shell Environment
+===============================
+
+The Simple Imager target installation environment, once booted using its
+dedicated Linux kernel and initrd, consists of shell functions, environment
+variables and scripts, which - when all put together - allow to carry out
+the installation process, by initializing the network, partitioning the
+disk(s), downloading and installing the target image and overrides, and
+eventually finalizing the installation before rebooting the host into its
+new environment.
+
+Loading the Environment
+-----------------------
+
+Loading the Simple Imager environment into your script context is achieved
+thanks to the following (source) command:
+
+  . /etc/simple-imager/environment
+
+  THIS MUST BE DONE BEFORE USING ANY SIMPLE IMAGER SHELL RESOURCE.
+
+
+Functions, Variables and Scripts
+--------------------------------
+
+Please refer to the corresonding README file for each topic:
+ - README.functions  on 'si*' shell functions
+ - README.variables  on 'SI_*' environment variables
+ - README.scripts    on pre-/actual/post-installation scripts
+

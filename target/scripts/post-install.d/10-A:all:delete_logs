@@ -1,0 +1,38 @@
+#!/bin/sh
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Load Simple Imager resources
+
+# Environment
+. /etc/simple-imager/environment
+
+# Variables
+siVariablesLoad
+
+
+## Delete logs
+
+# Log files
+siLogNotice "[${0##*/}] Deleting log files (/var/log/*)"
+siShellCommand find "${SI_DISK_TARGET}/var/log/" -type f \( \
+  -name '*log' -o \
+  -name '*.gz' -o \
+  -name '*[-_.][0-9]*' -o \
+  -name '*.notice' -o \
+  -name '*.info' -o \
+  -name '*.warn' -o \
+  -name '*.err' -o \
+  -name '*.crit' \
+  -name 'messages*' \
+\) -exec rm -fv {} \;
+[ $? -ne 0 ] && siLogWarning "[${0##*/}] Failed to delete log files (/var/log/*)" && exit 0
+siLogInfo "[${0##*/}] Log files deleted (/var/log/*)" && exit 0
+
+# Done
+exit 0
+

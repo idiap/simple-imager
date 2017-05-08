@@ -1,0 +1,45 @@
+#!/bin/bash
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Usage
+[ $# -lt 1 ] && cat << EOF && exit 1
+USAGE:
+  ${0##*/} <install-directory> <firmware-directory>
+
+SYNOPSIS:
+  Loop through kernel modules in <install-directory>/lib/modules and copy the
+  required firmware dependencies (based on 'modinfo' output), from the source
+  <firmware-directory> to <install-directory>/lib/firmware.
+EOF
+
+# Arguments
+MY_INSTALL_DIR="${1%%/}"
+MY_FIRMWARE_DIR="${2%%/}"
+
+
+## Checks
+[ -z "$(which modinfo)" ] && echo "ERROR(${0##*/}): Missing 'modinfo' executable ('kmod' package)" >&2 && exit 1
+
+
+## Firmware copy
+MY_INSTALL_MODULES_DIR="${MY_INSTALL_DIR}/lib/modules"
+MY_INSTALL_FIRMWARE_DIR="${MY_INSTALL_DIR}/lib/firmware"
+for module in $(find "${MY_INSTALL_MODULES_DIR}/" -type f -name '*.ko'); do
+  for firmware in $(modinfo "${module}" | awk '/^firmware/ {print $2}'); do
+    [ -f "${MY_INSTALL_FIRMWARE_DIR}/${firmware}" ] && continue
+    [ ! -f "${MY_FIRMWARE_DIR}/${firmware}" ] && echo "WARNING(${0##*/}): Firmware not found: ${firmware} (${module##*/})" >&2 && continue
+    firmware_dir="$(dirname "${MY_INSTALL_FIRMWARE_DIR}/${firmware}")"
+    [ ! -d "${firmware_dir}" ] && mkdir -p "${firmware_dir}"
+    [ ! -d "${firmware_dir}" ] && echo "ERROR(${0##*/}): Failed to create firmware directory: ${firmware_dir}" >&2 && continue
+    cp "${MY_FIRMWARE_DIR}/${firmware}" "${MY_INSTALL_FIRMWARE_DIR}/${firmware}"
+    [ $? -ne 0 ] && echo "ERROR(${0##*/}): Failed to copy firmware: ${firmware} (${module##*/})" >&2 && continue
+    echo "INFO(${0##*/}): Firmware successfully copied: ${firmware} (${module##*/})"
+  done
+done
+

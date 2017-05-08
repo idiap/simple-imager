@@ -1,0 +1,25 @@
+Simple Imager is a fork heavily inspired by:
+ - the SystemImager project - http://systemimager.org [GPLv2]
+ - the SALI project - https://oss.trac.surfsara.nl/sali [GPLv3]
+
+Copyright (C) 1999-2010 Brian Elliott Finley [SystemImager]
+Copyright (C) 2010-2013 SURFsara [SALI]
+Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+Please see the corresponding CREDITS file for further details.
+
+Simple Imager is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, Version 2.
+
+Simple Imager is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.
+
+See the GNU General Public License for more details.
+
+Simple Imager includes all resources which contain the following mention
+in their preamble: "Simple Imager"
+
+Other resources are (and must be) used according to their original license,
+which is (should be made) available from their respective author.
+

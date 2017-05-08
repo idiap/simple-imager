@@ -1,0 +1,9 @@
+## Simple Imager targets specifications
+#  (see 'man nodeattr' for how to use this file)
+
+# Sample
+#hostname si_target,si_group=<group-name>,si_image=<image-name>,si_overrides=<colon-separated-overrides-name>
+
+# NOTE: you may freely add any other key/value pairs you require,
+#       to be used for other purposes (e.g. along 'pdsh')
+

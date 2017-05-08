@@ -1,0 +1,357 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Network functions
+
+# Helpers
+
+# ... DHCP configuration
+_siNetworkDHCP() {
+  # Interface
+  siLogDebug "[Network:DHCP] Enabling interface: ${SI_NET_DEV}"
+  # ... configure
+  cat >> /etc/network/interfaces << EOF
+
+# [Network:DHCP]-configured
+auto ${SI_NET_DEV}
+iface ${SI_NET_DEV} inet dhcp
+EOF
+  # ... enable
+  siShellCommand ifup "${SI_NET_DEV}"
+  [ $? -ne 0 ] && siLogError "[Network:DHCP] Failed to bring interface up (${SI_NET_DEV})" && return 1
+
+  # Retrieve (U)DHCP-client configured settings
+  [ ! -f /tmp/udhcpc.${SI_NET_DEV}.vars ] && siLogError "[Network:DHCP] Missing/invalid UDHCP-client variables file (/tmp/udhcpc.${SI_NET_DEV}.vars)" && return 1
+  . /tmp/udhcpc.${SI_NET_DEV}.vars
+  # ... host name [required]
+  [ -z "${DHCP_HOSTNAME}" ] && siLogError '[Network:DHCP] Failed to retrieve DHCP-configured host name' && return 1
+  [ -n "${HOSTNAME}" -a "${HOSTNAME}" != '%DHCP%' ] && siLogWarning "[Network:DHCP] User-provided host name overridden by DHCP (was ${HOSTNAME})"
+  siVariablesSave HOSTNAME "${DHCP_HOSTNAME}"
+  # ... domain name [optional]
+  if [ -n "${DHCP_DOMAINNAME}" ]; then
+    [ -n "${DOMAINNAME}" -a "${DOMAINNAME}" != '%DHCP%' ] && siLogWarning "[Network:DHCP] User-provided domain name overridden by DHCP (was ${DOMAINNAME})"
+    siVariablesSave DOMAINNAME "${DHCP_DOMAINNAME}"
+  fi
+  # ... address [required]
+  [ -z "${DHCP_ADDR}" ] && siLogError '[Network:DHCP] Failed to retrieve DHCP-configured IP address' && return 1
+  [ -n "${SI_NET_ADDR}" -a "${SI_NET_ADDR}" != '%DHCP%' ] && siLogWarning "[Network:DHCP] User-provided IP address overridden by DHCP (was ${SI_NET_ADDR})"
+  siVariablesSave SI_NET_ADDR "${DHCP_ADDR}"
+  # ... network mask [required]
+  [ -z "${DHCP_MASK}" ] && siLogError '[Network:DHCP] Failed to retrieve DHCP-configured network mask' && return 1
+  [ -n "${SI_NET_MASK}" -a "${SI_NET_MASK}" != '%DHCP%' ] && siLogWarning "[Network:DHCP] User-provided network mask address overridden by DHCP (was ${SI_NET_MASK})"
+  siVariablesSave SI_NET_MASK "${DHCP_MASK}"
+  # ... broadcast address [optional]
+  if [ -n "${DHCP_BCAST}" ]; then
+    [ -n "${SI_NET_BCAST}" -a "${SI_NET_BCAST}" != '%DHCP%' ] && siLogWarning "[Network:DHCP] User-provided broadcast address overridden by DHCP (was ${SI_NET_BCAST})"
+    siVariablesSave SI_NET_BCAST "${DHCP_BCAST}"
+  fi
+  # ... gateway(s) [optional]
+  if [ -n "${DHCP_GW}" ]; then
+    [ -n "${SI_NET_GW}" -a "${SI_NET_GW}" != '%DHCP%' ] && siLogWarning "[Network:DHCP] User-provided gateway(s) overridden by DHCP (was ${SI_NET_GW})"
+    siVariablesSave SI_NET_GW "${DHCP_GW}"
+  fi
+  # ... DNS server(s) [optional]
+  if [ -n "${DHCP_DNS}" ]; then
+    [ -n "${SI_NET_DNS}" -a "${SI_NET_DNS}" != '%DHCP%' ] && siLogWarning "[Network:DHCP] User-provided DNS server(s) overridden by DHCP (was ${SI_NET_DNS})"
+    SI_NET_DNS="${DHCP_DNS}"
+    siVariablesSave SI_NET_DNS "${DHCP_DNS}"
+  fi
+  # ... NTP server(s) [optional]
+  if [ -n "${DHCP_NTP}" ]; then
+    [ -n "${SI_NET_NTP}" -a "${SI_NET_NTP}" != '%DHCP%' ] && siLogWarning "[Network:DHCP] User-provided NTP server(s) overridden by DHCP (was ${SI_NET_NTP})"
+    SI_NET_NTP="${DHCP_NTP}"
+    siVariablesSave SI_NET_NTP "${DHCP_NTP}"
+  fi
+  # ... Simple Imager server [required]
+  if [ "${SI_SERVER}" == '%DHCP%' ]; then
+    [ -z "${DHCP_SI_SERVER}" ] && siLogError "[Network:DHCP] Simple Imager server not provided by DHCP (option 225=si-server)" && return 1
+    local server="${DHCP_SI_SERVER%%!*}" protocol="${DHCP_SI_SERVER#*!}"
+    siVariablesSave SI_SERVER "${server}"
+    if [ "${protocol}" != "${server}" ]; then
+      local protocol_image="${protocol%%!*}" protocol_overrides="${protocol#*!}"
+      [ -z "${SI_SERVER_PROTOCOL}" -o "${SI_SERVER_PROTOCOL}" == '%AUTO%' ] && siVariablesSave SI_SERVER_PROTOCOL "${protocol_image}"
+      [ -z "${SI_SERVER_PROTOCOL_IMAGE}" -o "${SI_SERVER_PROTOCOL_IMAGE}" == '%AUTO%' ] && siVariablesSave SI_SERVER_PROTOCOL_IMAGE "${protocol_image}"
+      [ -z "${SI_SERVER_PROTOCOL_OVERRIDES}" -o "${SI_SERVER_PROTOCOL_OVERRIDES}" == '%AUTO%' ] && siVariablesSave SI_SERVER_PROTOCOL_OVERRIDES "${protocol_overrides}"
+    fi
+  fi
+  # ... Simple Imager monitor [optional]
+  if [ "${SI_MONITOR}" == '%DHCP%' ]; then
+    [ -z "${DHCP_SI_MONITOR}" ] && siLogWarning "[Network:DHCP] Simple Imager monitor not provided by DHCP (option 226=si-monitor)"
+    local monitor="${DHCP_SI_MONITOR%%!*}" protocol="${DHCP_SI_MONITOR#*!}"
+    siVariablesSave SI_MONITOR "${monitor}"
+    if [ "${protocol}" != "${monitor}" ]; then
+      [ -z "${SI_MONITOR_PROTOCOL}" -o "${SI_MONITOR_PROTOCOL}" == '%AUTO%' ] && siVariablesSave SI_MONITOR_PROTOCOL "${protocol}"
+    fi
+  fi
+  # ... Syslog [optional]
+  if [ "${SI_SYSLOG}" == '%DHCP%' ]; then
+    [ -z "${DHCP_SI_SYSLOG}" ] && siLogWarning "[Network:DHCP] Remote syslog server not provided by DHCP (option 227=si-syslog)"
+    siVariablesSave SI_SYSLOG "${DHCP_SI_SYSLOG}"
+  fi
+
+  # Done
+  return 0
+}
+
+# ... static configuration
+_siNetworkStatic() {
+  # Interface
+  siLogDebug "[Network:static] Enabling interface: ${SI_NET_DEV}"
+  # ... address [required]
+  [ -z "${SI_NET_ADDR}" -o "${SI_NET_ADDR}" == '%DHCP%' ] && siLogError "[Network:static] Invalid IP address (${SI_NET_ADDR:-none})" && return 1
+  # ... netmask [required]
+  [ -z "${SI_NET_MASK}" -o "${SI_NET_MASK}" == '%DHCP%' ] && siLogError "[Network:static] Invalid network mask (${SI_NET_MASK:-none})" && return 1
+  # ... broadcast address [optional]
+  if [ "${SI_NET_BCAST}" == '%DHCP%' ]; then
+    siVariablesSave SI_NET_BCAST ''
+  fi
+  # ... configure
+  cat >> /etc/network/interfaces << EOF
+
+# [Network:static]-configured
+auto ${SI_NET_DEV}
+iface ${SI_NET_DEV} inet static
+  address ${SI_NET_ADDR}
+  netmask ${SI_NET_MASK}
+  ${SI_NET_BCAST:+broadcast ${SI_NET_BCAST}}
+EOF
+  # ... enable
+  siShellCommand ifup "${SI_NET_DEV}"
+  [ $? -ne 0 ] && siLogError "[Network:static] Failed to bring interface up (${SI_NET_DEV})" && return 1
+
+  # Configure network
+  # ... gateway(s) [optional]
+  if [ "${SI_NET_GW}" == '%DHCP%' ]; then
+    siVariablesSave SI_NET_GW ''
+  elif [ -n "${SI_NET_GW}" ]; then
+    local gw_n
+    for gw_n in ${SI_NET_GW//,/ }; do
+      siShellCommand route add default "${gw_n}" dev "${SI_NET_DEV}"
+      [ $? -ne 0 ] && siLogError "[Network:static] Failed to add default gateway (${gw_n} via ${SI_NET_DEV})" && return 1
+    done
+  fi
+  # ... host name [required]
+  [ -z "${HOSTNAME}" -o "${HOSTNAME}" == '%DHCP%' ] && siLogError "[Network:static] Invalid host name (${HOSTNAME:-none})" && return 1
+  siShellCommand hostname "${HOSTNAME}"
+  [ $? -ne 0 ] && siLogError "[Network:static] Failed to set host name (${HOSTNAME})" && return 1
+  echo "${HOSTNAME}" > /etc/hostname
+  # ... domain name [optional]
+  if [ "${DOMAINNAME}" == '%DHCP%' ]; then
+    siVariablesSave DOMAINNAME ''
+  fi
+  # ... hosts
+  cat >> /etc/hosts << EOF
+
+# [Network:static]-configured
+${SI_NET_ADDR} ${DOMAINNAME:+${HOSTNAME}.${DOMAINNAME}} ${HOSTNAME}
+EOF
+  # ... DNS server(s) [optional]
+  if [ "${SI_NET_DNS}" == '%DHCP%' ]; then
+    siVariablesSave SI_NET_DNS ''
+  elif [ -n "${SI_NET_DNS}" ]; then
+    local dns_n
+    echo "# [Network:static]-configured" > /etc/resolv.conf
+    [ -n "${DOMAINNAME}" ] && echo "domain ${DOMAINNAME}" > /etc/resolv.conf
+    for dns_n in ${SI_NET_DNS//,/ }; do
+      echo "nameserver ${dns_n}" > /etc/resolv.conf
+    done
+  fi
+  # ... NTP server(s) [optional]
+  if [ "${SI_NET_NTP}" == '%DHCP%' ]; then
+    siVariablesSave SI_NET_NTP ''
+  elif [ -n "${SI_NET_NTP}" ]; then
+    echo "# [Network:static] SI-configured" > /etc/ntp.conf
+    for ntp_n in ${SI_NET_NTP//,/ }; do
+      echo "server ${ntp_n}" >> /etc/ntp.conf
+    done
+  fi
+  # ... Simple Imager server [required]
+  [ -z "${SI_SERVER}" -o "${SI_SERVER}" == '%DHCP%' ] && siLogError "[Network:static] Invalid Simple Imager server (${SI_SERVER:-none})" && return 1
+  # ... Simple Imager monitor [optional]
+  if [ "${SI_MONITOR}" == '%DHCP%' ]; then
+    siVariablesSave SI_MONITOR ''
+  fi
+  # ... Syslog server [optional]
+  if [ "${SI_SYSLOG}" == '%DHCP%' ]; then
+    siVariablesSave SI_SYSLOG ''
+  fi
+}
+
+# Initialization
+siNetworkInit() {
+  siLogNotice '[Network:init] Initializing network'
+  [ -z "${SI_VARIABLES}" ] && siLogError "[Network:init] Simple Imager environment is undefined (please call 'siVariablesLoad' beforehand)" && return 1
+
+  # Loopback
+  siLogDebug '[Network:init] Enabling interface: lo'
+  siShellCommand ifup lo
+  [ $? -ne 0 ] && siLogError '[Network:init] Failed to bring interface up (lo)' && return 1
+
+  # Device
+  siLogDebug '[Network:init] Picking-up network device'
+  # ... device [optional]
+  if [ -z "${SI_NET_DEV}" -o "${SI_NET_DEV}" == '%AUTO%' ]; then
+    local dev="$(ls -1 /sys/class/net | grep -v 'lo' | sort | head -n 1)"
+    [ -z "${dev}" ] && siLogError '[Network:init] No network device' && return 1
+    siVariablesSave SI_NET_DEV "${dev}"
+  fi
+  siShellCommand ifconfig "${SI_NET_DEV}" &>/dev/null
+  [ $? -ne 0 ] && siLogError "[Network:init] Invalid network device (${SI_NET_DEV})" && return 1
+
+  # Bring network up
+  case "${SI_NET_INIT}" in
+    'dhcp') _siNetworkDHCP;;
+    'static') _siNetworkStatic;;
+    *) siLogError "[Network:init] Invalid method initialization method (${SI_NET_INIT})" && return 1
+  esac
+  [ $? -ne 0 ] && siLogError "[Network:init] Failed to bring network up (${SI_NET_DEV})" && return 1
+
+  # Retrieve MAC address
+  local mac="$(ifconfig "${SI_NET_DEV}" | grep -i 'HWaddr' | sed 's/^.*HWaddr\s\s*\(\S*\).*$/\1/')"
+  [ -z "${mac}" ] && siLogError "[Network:init] Failed to retrieve device MAC address (${SI_NET_DEV})" && return 1
+  siVariablesSave SI_NET_MAC "${mac}"
+
+  # Defaults
+  [ -z "${SI_SERVER_PROTOCOL}" -o "${SI_SERVER_PROTOCOL}" == '%AUTO%' ] && siVariablesSave SI_SERVER_PROTOCOL 'bittorrent'
+  [ -z "${SI_SERVER_PROTOCOL_IMAGE}" -o "${SI_SERVER_PROTOCOL_IMAGE}" == '%AUTO%' ] && siVariablesSave SI_SERVER_PROTOCOL_IMAGE 'bittorrent'
+  [ -z "${SI_SERVER_PROTOCOL_OVERRIDES}" -o "${SI_SERVER_PROTOCOL_OVERRIDES}" == '%AUTO%' ] && siVariablesSave SI_SERVER_PROTOCOL_OVERRIDES 'bittorrent'
+  [ -z "${SI_MONITOR_PROTOCOL}" -o "${SI_MONITOR_PROTOCOL}" == '%AUTO%' ] && siVariablesSave SI_MONITOR_PROTOCOL 'restful'
+
+  # Host name (cont'd)
+  # ... short (no '.'-suffix what-so-ever)
+  siVariablesSave SI_HOSTSHORT "${HOSTNAME%%.*}"
+  # ... serie (strip all trailing digits)
+  siVariablesSave SI_HOSTSERIE "${SI_HOSTSHORT//[0-9]/}"
+  # ... full (incl. domain name)
+  siVariablesSave SI_HOSTFULL "${HOSTNAME}${DOMAINNAME:+.${DOMAINNAME}}"
+
+  # Done
+  siLogNotice "[Network:init] Network up and running"
+  siLogNotice "[Network:init]   Hostname:   ${SI_HOSTFULL} (serie: ${SI_HOSTSERIE})"
+  siLogNotice "[Network:init]   Interface:  ${SI_NET_ADDR}/${SI_NET_MASK:-dflt} (bcast:${SI_NET_BCAST:-dflt}) on ${SI_NET_DEV}"
+  siLogNotice "[Network:init]   Gateway(s): ${SI_NET_GW:-none}"
+  siLogNotice "[Network:init]   DNS srv(s): ${SI_NET_DNS:-none}"
+  siLogNotice "[Network:init]   NTP srv(s): ${SI_NET_NTP:-none}"
+  siLogNotice "[Network:init]   SI server:  ${SI_SERVER} (${SI_SERVER_PROTOCOL_IMAGE}/${SI_SERVER_PROTOCOL_OVERRIDES})"
+  siLogNotice "[Network:init]   SI monitor: ${SI_MONITOR:-none} (${SI_MONITOR_PROTOCOL:-n/a})"
+  siLogNotice "[Network:init]   Syslog:     ${SI_SYSLOG:-none}"
+  siVariablesSave SI_NET_UP 'yes'
+  return 0
+}
+
+# BitTorrent
+siNetworkBtStop() {
+  siLogNotice "[Network:BitTorrent] Stopping BitTorrent seeders"
+
+  # Kill Aria2 clients
+  siShellCommand pkill aria2c
+
+  # Wait for them to exit gracefully
+  siShellCommand sleep 5
+
+  # Check lingering processes
+  pgrep aria2c >/dev/null
+  [ $? -eq 0 ] && siLogWarning "[Network:BitTorrent] Failed to stop (all) BitTorrent seeders" && return 1
+
+  # Done
+  return 0
+}
+
+# NTP
+siNetworkNtpQuery() {
+  siLogNotice "[Network:NTP] Querying NTP server (${SI_NET_NTP:-none})"
+
+  # Query NTP server
+  [ -z "${SI_NET_NTP}" ] && siLogWarning '[Network:NTP] No NTP server' && return 1
+  siShellCommand timeout 30 ntpd -q -n
+  [ $? -ne 0 ] && siLogWarning "[Network:NTP] Failed to query NTP server (${SI_NET_NTP:-none})" && return 1
+
+  # Done
+  return 0
+}
+
+# SSH
+siNetworkSshdDelkeys() {
+  siLogNotice '[Network:SSHD] Deleting SSH server host keys'
+  siShellCommand rm -f /etc/ssh/ssh_host_*
+  [ $? -ne 0 ] && siLogWarning '[Network:SSHD] Failed to delete SSH server host keys' && return 1
+  return 0
+}
+siNetworkSshdGenkeys() {
+  siLogNotice '[Network:SSHD] Generating SSH server host keys'
+  local ret=0
+
+  # Generate keys
+  # ... RSA
+  if [ ! -f /etc/ssh/ssh_host_rsa_key ]; then
+    siLogDebug '[Network:SSHD] Generating new SSH server host key (RSA)'
+    siShellCommand ssh-keygen -q -t rsa -N '' -f /etc/ssh/ssh_host_rsa_key -C "Simple Imager: $(hostname -f) ($(date +"%Y-%m-%d"))"
+    [ $? -ne 0 ] && siLogWarning '[Network:SSHD] Failed to generate SSH server host key (RSA)' && ret=1
+  else
+    siLogWarning '[Network:SSHD] SSH server host key already exists (RSA)' && ret=2
+  fi
+  ssh-keygen -lf /etc/ssh/ssh_host_rsa_key.pub
+  # ... DSA 
+  if [ ! -f /etc/ssh/ssh_host_dsa_key ]; then
+    siLogDebug '[Network:SSHD] Generating new SSH server host key (DSA)'
+    siShellCommand ssh-keygen -q -t dsa -N '' -f /etc/ssh/ssh_host_dsa_key -C "Simple Imager: $(hostname -f) ($(date +"%Y-%m-%d"))"
+    [ $? -ne 0 ] && siLogWarning '[Network:SSHD] Failed to generate SSH server host key (DSA)' && ret=1
+  else
+    siLogWarning '[Network:SSHD] SSH server host key already exists (DSA)' && ret=2
+  fi
+  ssh-keygen -lf /etc/ssh/ssh_host_dsa_key.pub
+  # ... ECDSA 
+  if [ ! -f /etc/ssh/ssh_host_ecdsa_key ]; then
+    siLogDebug '[Network:SSHD] Generating new SSH server host key (ECDSA)'
+    siShellCommand ssh-keygen -q -t ecdsa -N '' -f /etc/ssh/ssh_host_dsa_key -C "Simple Imager: $(hostname -f) ($(date +"%Y-%m-%d"))"
+    [ $? -ne 0 ] && siLogWarning '[Network:SSHD] Failed to generate SSH server host key (ECDSA)' && ret=1
+  else
+    siLogWarning '[Network:SSHD] SSH server host key already exists (ECDSA)' && ret=2
+  fi
+  ssh-keygen -lf /etc/ssh/ssh_host_ecdsa_key.pub
+
+  # Done
+  return ${ret}
+}
+
+siNetworkSshdStart() {
+  siLogNotice '[Network:SSHD] Starting SSH server'
+
+  # Check authorized keys
+  [ ! -f /root/.ssh/authorized_keys ] && siLogWarning '[Network:SSHD] No authorized keys (/root/.ssh/authorized_keys)' && return 1
+
+  # Check host keys
+  [ -z "$(ls -1 /etc/ssh/ssh_host_*)" ] && siLogWarning '[Network:SSHD] No host keys (/ect/ssh/ssh_host_*)' && return 1
+  siShellCommand chmod 600 /etc/ssh/ssh_host_*_key
+  
+  # Start server
+  siShellCommand mkdir -p /run/sshd
+  siShellCommand /usr/sbin/sshd
+  [ $? -ne 0 ] && siLogWarning '[Network:SSHD] Failed to start SSH server' && return 1
+
+  # Done
+  return 0
+}
+
+siNetworkSshdStop() {
+  siLogNotice "[Network:SSHD] Stopping SSH server"
+
+  # Kill server
+  siShellCommand pkill sshd
+
+  # Wait for it to exit gracefully
+  siShellCommand sleep 3
+
+  # Check lingering processes
+  pgrep sshd >/dev/null
+  [ $? -eq 0 ] && siLogWarning "[Network:SSHD] Failed to kill SSH server" && return 1
+
+  # Done
+  return 0
+}
+

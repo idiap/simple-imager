@@ -1,0 +1,215 @@
+#!/bin/bash
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 1999-2010 Brian Elliott Finley [SystemImager]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Usage
+[ "${1##*-}" == 'help' ] && cat << EOF && exit 1
+USAGE:
+  ${0##*/}
+
+SYSNOPSIS:
+  Create the tarballs and (bit)torrents files for each of the available images
+  and overrides.
+
+ENVIRONMENT:
+  The following environment variables are available to customize the packaging,
+  which default value can be overriden in /etc/default/si_server:
+
+  SI_REPOSITORY_IMAGES=/var/lib/simple-imager/images
+    (Source) Images repository (directory) path
+
+  SI_REPOSITORY_OVERRIDES=/var/lib/simple-imager/overrides
+    (Source) Overrides repository (directory) path
+
+  SI_REPOSITORY_TARBALLS=/var/lib/simple-imager/tarballs
+    (Destination) Tarballs repository (directory) path
+
+  SI_REPOSITORY_TORRENTS=/var/lib/simple-imager/torrents
+    (Destination) Torrents repository (directory) path
+
+  SI_PACK_COMPRESSION: xz (or: none, gz, bz2)
+    Compression to use when creating the tarball
+
+  SI_SERVER_BTTRACKER_HOST='127.0.0.1'
+    BitTorrent tracker hostname/IP address
+
+  SI_SERVER_BTTRACKER_PORT=6969
+    TCP port to have the tracker listen on (bttrack: --port).
+EOF
+
+
+## Parameters
+# ... environment
+MY_REPOSITORY_IMAGES="${SI_REPOSITORY_IMAGES}"
+MY_REPOSITORY_OVERRIDES="${SI_REPOSITORY_OVERRIDES}"
+MY_REPOSITORY_TARBALLS="${SI_REPOSITORY_TARBALLS}"
+MY_REPOSITORY_TORRENTS="${SI_REPOSITORY_TORRENTS}"
+MY_PACK_COMPRESSION="${SI_PACK_COMPRESSION}"
+MY_SERVER_BTTRACKER_HOST="${SI_SERVER_BTTRACKER_HOST}"
+MY_SERVER_BTTRACKER_PORT="${SI_SERVER_BTTRACKER_PORT}"
+# ... configuration
+[ -e /etc/default/si_server ] && . /etc/default/si_server
+[ -z "${MY_REPOSITORY_IMAGES}" ] && MY_REPOSITORY_IMAGES="${SI_REPOSITORY_IMAGES}"
+[ -z "${MY_REPOSITORY_OVERRIDES}" ] && MY_REPOSITORY_OVERRIDES="${SI_REPOSITORY_OVERRIDES}"
+[ -z "${MY_REPOSITORY_TARBALLS}" ] && MY_REPOSITORY_TARBALLS="${SI_REPOSITORY_TARBALLS}"
+[ -z "${MY_REPOSITORY_TORRENTS}" ] && MY_REPOSITORY_TORRENTS="${SI_REPOSITORY_TORRENTS}"
+[ -z "${MY_PACK_COMPRESSION}" ] && MY_PACK_COMPRESSION="${SI_PACK_COMPRESSION}"
+[ -z "${MY_SERVER_BTTRACKER_HOST}" ] && MY_SERVER_BTTRACKER_HOST="${SI_SERVER_BTTRACKER_HOST}"
+[ -z "${MY_SERVER_BTTRACKER_PORT}" ] && MY_SERVER_BTTRACKER_PORT="${SI_SERVER_BTTRACKER_PORT}"
+# ... default
+[ -z "${MY_REPOSITORY_IMAGES}" ] && MY_REPOSITORY_IMAGES='/var/lib/simple-imager/images'
+[ -z "${MY_REPOSITORY_OVERRIDES}" ] && MY_REPOSITORY_OVERRIDES='/var/lib/simple-imager/overrides'
+[ -z "${MY_REPOSITORY_TARBALLS}" ] && MY_REPOSITORY_TARBALLS='/var/lib/simple-imager/tarballs'
+[ -z "${MY_REPOSITORY_TORRENTS}" ] && MY_REPOSITORY_TORRENTS='/var/lib/simple-imager/torrents'
+[ -z "${MY_PACK_COMPRESSION}" ] && MY_PACK_COMPRESSION='xz'
+[ -z "${MY_SERVER_BTTRACKER_HOST}" ] && MY_SERVER_BTTRACKER_HOST='127.0.0.1'
+[ -z "${MY_SERVER_BTTRACKER_PORT}" ] && MY_SERVER_BTTRACKER_PORT='6969'
+# ... clean-up
+MY_REPOSITORY_IMAGES="${MY_REPOSITORY_IMAGES%%/}"
+MY_REPOSITORY_OVERRIDES="${MY_REPOSITORY_OVERRIDES%%/}"
+MY_REPOSITORY_TARBALLS="${MY_REPOSITORY_TARBALLS%%/}"
+MY_REPOSITORY_TORRENTS="${MY_REPOSITORY_TORRENTS%%/}"
+MY_SERVER_BTTRACKER_URL="http://${MY_SERVER_BTTRACKER_HOST}:${MY_SERVER_BTTRACKER_PORT}/announce"
+
+
+## Check
+[ ! -d "${MY_REPOSITORY_IMAGES}" ] && echo "ERROR: Missing/invalid images repository directory (${MY_REPOSITORY_IMAGES})" >&2 && exit 1
+[ ! -d "${MY_REPOSITORY_OVERRIDES}" ] && echo "ERROR: Missing/invalid overrides repository directory (${MY_REPOSITORY_OVERRIDES})" >&2 && exit 1
+[ ! -d "${MY_REPOSITORY_TARBALLS}" ] && echo "ERROR: Missing/invalid tarballs repository directory (${MY_REPOSITORY_TARBALLS})" >&2 && exit 1
+[ ! -d "${MY_REPOSITORY_TORRENTS}" ] && echo "ERROR: Missing/invalid torrents repository directory (${MY_REPOSITORY_TORRENTS})" >&2 && exit 1
+case "${MY_PACK_COMPRESSION}" in
+  'xz') MY_TAR_EXTENSION='tar.xz';;
+  'bzip2','bz2') MY_TAR_EXTENSION='tar.bz2';;
+  'gzip','gz') MY_TAR_EXTENSION='tar.gz';;
+  'none') MY_TAR_EXTENSION='tar';;
+  *) echo "ERROR: Invalid compression method (${MY_PACK_COMPRESSION})" >&2 && exit 1
+esac
+[ -z "$(which tar)" ] && echo "ERROR: Missing 'tar' executable" >&2 && exit 1
+[ -z "$(which btmakemetafile)" ] && echo "ERROR: Missing 'btmakemetafile' (bittorrent) executable" >&2 && exit 1
+
+
+## List images/overrides
+MY_PACK_IMAGES="$(find "${MY_REPOSITORY_IMAGES}/" -mindepth 1 -maxdepth 1 -type d | sed 's|.*/||g' | tr '\n' ' ')"
+MY_PACK_OVERRIDES="$(find "${MY_REPOSITORY_OVERRIDES}/" -mindepth 1 -maxdepth 1 -type d | sed 's|.*/||g' | tr '\n' ' ')"
+
+
+## Check (cont'd)
+cat << EOF
+INFO: About to package images/overrides from/into the following repositories:
+      REPOSITORY_IMAGES: ..... ${MY_REPOSITORY_IMAGES}
+      REPOSITORY_OVERRIDES: .. ${MY_REPOSITORY_OVERRIDES}
+      REPOSITORY_TARBALLS: ... ${MY_REPOSITORY_TARBALLS}
+      REPOSITORY_TORRENTS: ... ${MY_REPOSITORY_TORRENTS}
+      PACK_IMAGES: ........... ${MY_PACK_IMAGES}
+      PACK_OVERRIDES: ........ ${MY_PACK_OVERRIDES}
+      PACK_COMPRESSION: ...... ${MY_TAR_EXTENSION}
+      SERVER_BTTRACKER_URL: .. ${MY_SERVER_BTTRACKER_URL}
+
+PRESS <ENTER> TO PROCEED OR <CTRL+C> TO ABORT...
+
+EOF
+read
+
+
+## Helpers
+
+function __update {
+  local tarball="${1}"
+  local torrent="${2}"
+  local answer=
+  if [ -e "${tarball}" ]; then
+    while true; do
+      echo -n "WARNING: '${tarball##*/}' already exists; do you want to update it [N/y] ? "
+      read answer
+      case "${answer}" in
+        'y'|'Y') answer='y'; break;;
+        ''|'n'|'N') answer='n'; break;;
+      esac
+    done
+    if [ "${answer}" == 'y' ]; then
+      rm -fv "${tarball}"
+      rm -fv "${torrent}"
+    fi
+  fi
+}
+
+function __tarball {
+  local directory="${1}"
+  local tarball="${2}"
+  local tar_compression=
+  if [ ! -e "${tarball}" ]; then
+    case "${tarball##*.}" in
+      'xz') [ -n "$(which pixz)" ] && tar_compression='--use-compress-program pixz' || tar_compression='--xz';;
+      'bz2') [ -n "$(which pbzip2)" ] && tar_compression='--use-compress-program pbzip2' || tar_compression='--bzip2';;
+      'gz') [ -n "$(which pigz)" ] && tar_compression='--use-compress-program pigz' || tar_compression='--gzip';;
+    esac
+    echo "INFO: Creating tarball '${tarball}' (this can take up to hours)..."
+    tar \
+      --directory "${directory}" \
+      --create --preserve-permissions \
+      ${tar_compression} \
+      --file "${tarball}" \
+      .
+  fi
+}
+
+function __torrent {
+  local tarball="${1}"
+  local torrent="${2}"
+  if [ ! -e "${torrent}" ]; then
+    echo "INFO: Creating torrent '${torrent}'..."
+    btmakemetafile \
+      "${tarball}" \
+      "${MY_SERVER_BTTRACKER_URL}" \
+      --target "${torrent}"
+    ln \
+      --symbolic --force \
+      "${tarball}" "${torrent%/*}/${tarball##*/}"
+  fi
+}
+
+
+## Update existing tarballs/torrents
+
+# Images
+for image in ${MY_PACK_IMAGES}; do
+  __update \
+    "${MY_REPOSITORY_TARBALLS}/image-${image}.${MY_TAR_EXTENSION}" \
+    "${MY_REPOSITORY_TORRENTS}/image-${image}.${MY_TAR_EXTENSION}.torrent"
+done
+
+# Overrides
+for override in ${MY_PACK_OVERRIDES}; do
+  __update \
+    "${MY_REPOSITORY_TARBALLS}/override-${override}.${MY_TAR_EXTENSION}" \
+    "${MY_REPOSITORY_TORRENTS}/override-${override}.${MY_TAR_EXTENSION}.torrent"
+done
+
+
+## Create (non-existing) tarballs/torrents
+
+# Images
+for image in ${MY_PACK_IMAGES}; do
+  __tarball \
+    "${MY_REPOSITORY_IMAGES}/${image}" \
+    "${MY_REPOSITORY_TARBALLS}/image-${image}.${MY_TAR_EXTENSION}"
+  __torrent \
+    "${MY_REPOSITORY_TARBALLS}/image-${image}.${MY_TAR_EXTENSION}" \
+    "${MY_REPOSITORY_TORRENTS}/image-${image}.${MY_TAR_EXTENSION}.torrent"
+done
+
+# Overrides
+for override in ${MY_PACK_OVERRIDES}; do
+  __tarball \
+    "${MY_REPOSITORY_OVERRIDES}/${override}" \
+    "${MY_REPOSITORY_TARBALLS}/override-${override}.${MY_TAR_EXTENSION}"
+  __torrent \
+    "${MY_REPOSITORY_TARBALLS}/override-${override}.${MY_TAR_EXTENSION}" \
+    "${MY_REPOSITORY_TORRENTS}/override-${override}.${MY_TAR_EXTENSION}.torrent"
+done
+

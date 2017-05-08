@@ -1,0 +1,186 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Monitoring status: post-install
+siMonitorPostInstall
+
+
+## Configuration
+siPrintSection "Configuration"
+
+# Disk
+siPrintHeader "Configuring Disk"
+siLogInfo "[${0##*/}] Configuring disk"
+
+# ... /etc/fstab
+siLogNotice "[${0##*/}] Configuring /etc/fstab"
+MY_UUID_BOOT="$(blkid ${MY_PART_BOOT} | sed 's|^.*\sUUID="\([^"]*\)".*$|UUID=\1|' | grep '^UUID=[-0-9a-f]*$')"
+[ -z "${MY_UUID_BOOT}" ] && MY_UUID_BOOT="${MY_PART_BOOT}"
+if [ -n "${MY_PART_ESP}" ]; then
+  MY_UUID_ESP="$(blkid ${MY_PART_ESP} | sed 's|^.*\sUUID="\([^"]*\)".*$|UUID=\1|' | grep '^UUID=[-0-9a-f]*$')"
+  [ -z "${MY_UUID_ESP}" ] && MY_UUID_ESP="${MY_PART_ESP}"
+fi
+cat > "${SI_DISK_TARGET}/etc/fstab" << EOF
+## Simple Imager [${0##*/}]: File automatically created/updated
+# <file system> <mount point> <type> <options> <dump> <pass>
+
+# System
+proc /proc proc defaults 0 0
+/dev/mapper/vg.local-lv.root / ext4 errors=remount-ro 0 1
+${MY_UUID_BOOT} /boot ext4 defaults 0 2
+${MY_UUID_ESP:-#[N/A]} /boot/efi vfat umask=0077 0 1
+/dev/mapper/vg.local-lv.tmp /tmp ext4 defaults 0 2
+/dev/mapper/vg.local-lv.var /var ext4 defaults 0 2
+/dev/mapper/vg.local-lv.local /local ext4 defaults 0 2
+/dev/mapper/vg.local-lv.swap none swap sw 0 0
+
+# Data
+# (add additional non-system partitions below)
+EOF
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to configure /etc/fstab (${SI_DISK_TARGET}/etc/fstab)" && siConsoleError
+
+# ... GRUB (bootloader)
+siLogNotice "[${0##*/}] (Re-)installing and configuring GRUB"
+export DEBIAN_FRONTEND=noninteractive
+export DEBIAN_PRIORITY=critical
+# ... PC(BIOS) vs (U)EFI
+if [ -n "${MY_PART_ESP}" ]; then
+  siShellCommand chroot "${SI_DISK_TARGET}/" apt-get install --yes grub-efi
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to install GRUB for (U)EFI" && siConsoleError
+  siShellCommand chroot "${SI_DISK_TARGET}/" apt-get autoremove --yes --purge grub-pc
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to uninstall GRUB for PC(BIOS)" && siConsoleError
+else
+  siShellCommand chroot "${SI_DISK_TARGET}/" apt-get install --yes grub-pc
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to install GRUB for PC(BIOS)" && siConsoleError
+  siShellCommand chroot "${SI_DISK_TARGET}/" apt-get autoremove --yes --purge grub-efi
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to uninstall GRUB for (U)EFI" && siConsoleError
+  # ... prevent debian-installer asking silly questions
+  echo "grub-pc grub-pc/install_devices string ${SI_DISK_DEV}" | chroot "${SI_DISK_TARGET}/" debconf-set-selections
+fi
+# ... update configuration
+siShellCommand chroot "${SI_DISK_TARGET}/" update-grub
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to update GRUB configuration (update-grub)" && siConsoleError
+# ... install
+siShellCommand chroot "${SI_DISK_TARGET}/" grub-install --no-floppy ${SI_DISK_DEV}
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to install GRUB on disk (grub-install ${})" && siConsoleError
+
+# ... done
+siLogInfo "[${0##*/}] Done with configuring disk"
+
+# Hostname
+siPrintHeader "Configuring Hostname"
+siLogInfo "[${0##*/}] Configuring hostname"
+
+# ... /etc/hosts
+siLogNotice "[${0##*/}] Configuring /etc/hosts"
+if [ "${SI_NET_INIT}" == 'static' ]; then
+  cat > "${SI_DISK_TARGET}/etc/hosts" << EOF
+## Simple Imager [${0##*/}]: File automatically created/updated
+
+# IPv4
+127.0.0.1 localhost
+${SI_NET_ADDR} ${SI_HOSTFULL} ${HOSTNAME}
+EOF
+else
+  cat > "${SI_DISK_TARGET}/etc/hosts" << EOF
+## Simple Imager [${0##*/}]: File automatically created/updated
+
+# IPv4
+127.0.0.1 localhost
+EOF
+fi
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to configure /etc/hosts (${SI_DISK_TARGET}/etc/hosts)" && siConsoleError
+
+# ... /etc/hostname
+siLogNotice "[${0##*/}] Configuring /etc/hostname"
+echo "${HOSTNAME}" > "${SI_DISK_TARGET}/etc/hostname"
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to configure /etc/hostname (${SI_DISK_TARGET}/etc/hostname)" && siConsoleError
+
+# ... /etc/mailname
+siLogNotice "[${0##*/}] Configuring /etc/mailname"
+echo "${SI_HOSTFULL}" > "${SI_DISK_TARGET}/etc/mailname"
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to configure /etc/mailname (${SI_DISK_TARGET}/etc/mailname)" && siConsoleError
+
+# ... done
+siLogInfo "[${0##*/}] Done with configuring hostname"
+
+# Network
+siPrintHeader "Configuring Network"
+siLogInfo "[${0##*/}] Configuring network"
+
+# ... /etc/network/interfaces
+siLogNotice "[${0##*/}] Configuring /etc/network/interfaces"
+if [ "${SI_NET_INIT}" == 'static' ]; then
+  cat > "${SI_DISK_TARGET}/etc/network/interfaces" << EOF
+## Simple Imager [${0##*/}]: File automatically created/updated
+
+# Loopback
+auto lo
+iface lo inet loopback
+
+# Primary interface
+auto ${SI_NET_DEV}
+iface ${SI_NET_DEV} inet static
+  address ${SI_NET_ADDR}
+  netmask ${SI_NET_MASK}
+  ${SI_NET_BCAST:-#N/A:}broadcast ${SI_NET_BCAST:-none}
+  ${SI_NET_GW:-#N/A:}gateway ${SI_NET_GW:-none}
+EOF
+else
+  cat > "${SI_DISK_TARGET}/etc/network/interfaces" << EOF
+## Simple Imager [${0##*/}]: File automatically created/updated
+
+# Loopback
+auto lo
+iface lo inet loopback
+
+# Primary interface
+allow-hotplug ${SI_NET_DEV}
+iface ${SI_NET_DEV} inet dhcp
+EOF
+fi
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to configure /etc/network/interfaces (${SI_DISK_TARGET}/etc/network/interfaces)" && siConsoleError
+
+# ... /etc/resolv.conf
+if [ "${SI_NET_INIT}" == 'static' ]; then
+  siLogNotice "[${0##*/}] Configuring /etc/resolv.conf"
+  cat > "${SI_DISK_TARGET}/etc/resolv.conf" << EOF
+## Simple Imager [${0##*/}]: File automatically created/updated
+
+# DNS settings
+${DOMAINNAME:-#N/A:}domain ${DOMAINNAME:-none}
+EOF
+  for dns in ${SI_NET_DNS//,/ }; do
+    echo "nameserver ${dns}" >> "${SI_DISK_TARGET}/etc/resolv.conf"
+  done
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to configure /etc/resolv.conf (${SI_DISK_TARGET}/etc/resolv.conf)" && siConsoleError
+  unset dns
+fi
+
+# ... /etc/ntp.conf
+if [ "${SI_NET_INIT}" == 'static' ]; then
+  siLogNotice "[${0##*/}] Configuring /etc/ntp.conf"
+  cat > "${SI_DISK_TARGET}/etc/ntp.conf" << EOF
+## Simple Imager [${0##*/}]: File automatically created/updated
+
+# NTP settings
+EOF
+  for ntp in ${SI_NET_NTP//,/ }; do
+    echo "server ${ntp}" >> "${SI_DISK_TARGET}/etc/ntp.conf"
+  done
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to configure /etc/ntp.conf (${SI_DISK_TARGET}/etc/ntp.conf)" && siConsoleError
+  unset ntp
+fi
+
+# ... done
+siLogInfo "[${0##*/}] Done with configuring network"
+
+# Done
+siLogInfo "[${0##*/}] Done with configuring target"
+siPrintConfirmOptional "Done with configuring target; proceed ?" \
+

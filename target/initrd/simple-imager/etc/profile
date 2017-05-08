@@ -1,0 +1,14 @@
+## Simple Imager
+
+# Paths
+export PATH='/sbin:/bin:/usr/sbin:/usr/bin'
+export LD_LIBRARY_PATH='/lib:/usr/lib'
+export SHELL=/bin/ash
+
+# General settings
+ulimit -c 0
+umask 022
+
+# Prompt
+export PS1="\n\[\e[35m\]* \[\e[31m\]\u@\h:\[\e[36m\]\w\[\e[35m\]\n#\[\e[0m\] "
+

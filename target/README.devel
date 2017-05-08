@@ -1,0 +1,67 @@
+Simple Imager - Target Installation Environment
+***********************************************
+
+Development Notes
+=================
+
+Build Chain
+-----------
+
+Currently, the build chain is not appropriate for class-platform build.
+
+However, in order to inch towards that goal and provide an environment that
+is as "self-contained" and independent from the build host as possible, please
+keep the following rules in mind when working with the build chain (make
+files):
+
+- make sure to configure 'pkg-config' such as to use only the resources
+  built specifically for target installation environment (and not those
+  of the host/build system):
+
+    export PKG_CONFIG_DIR=
+    export PKG_CONFIG_SYSROOT_DIR=$(INITRD_IMAGE_DIR)
+    export PKG_CONFIG_LIBDIR=$(INITRD_IMAGE_DIR)/usr/lib/pkgconfig:$(INITRD_IMAGE_DIR)/usr/share/pkgconfig
+    export LD_LIBRARY_PATH=$(INITRD_IMAGE_DIR)/usr/lib
+
+- make sure to use the following configure options, when available:
+
+    --with-sysroot=$(INITRD_IMAGE_DIR)  # See 'PKG_CONFIG' above
+    --prefix=/usr           # Make it easy to identify the parts that we build
+    --disable-nls           # Native Language Support
+    --disable-rpath         # No hard-coded library search path
+    --disable-silent-rules  # Do show entire build commands
+    --disable-doc           # Do not build/install documentation
+    --disable-manpages
+
+ - make sure to provide proper build flags:
+
+    CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include"
+    LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib"
+
+
+Init and Install Process
+------------------------
+
+Using its dedicated kernel and initrd, the target installation environment will
+come to life:
+ - by having the kernel call the Busybox init script (symlinked to '/init'),
+   which will...
+ - first execute the '/usr/bin/si_init' script as part of its 'sysinit' and...
+ - then execute the '/usr/bin/si_install' script on its first TTY
+(see the /etc/inittab for further details)
+
+The 'si_init' script will:
+ - mount the system partitions (/dev, /sys and /proc)
+ - blacklist unwanted modules (based on BLACKLIST=... boot option(s))
+ - start UDev and have it (automatically) enable the hardware (network interfaces,
+   USB periferals, etc.)
+ - mount the pseudo-terminal system (/dev/pts)
+ - initialize the Simple Imager environment (siVariablesInit, siVariablesSaveBoot)
+
+The 'si_install' script will:
+ - look into the '/etc/simple-imager/install.d' directory and...
+ - execute (source) all the scripts it finds there, in order to...
+ - initialize the network (siNetworkInit)
+ - initialize the logging
+ - initialize and launch the target installation (siTargetInit, siTargetInstall)
+

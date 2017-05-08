@@ -1,0 +1,13 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Load (source) all environment definitions
+for file in $(ls -1 /etc/simple-imager/environment.d/ | sort); do
+  . "/etc/simple-imager/environment.d/${file}"
+done
+

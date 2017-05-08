@@ -1,0 +1,14 @@
+Simple Imager - Installation Material Source
+********************************************
+
+Overview
+========
+
+A Simple Imager source is any host that is to be used as reference to have its
+image copied (pulled) by the Simple Imager server (the so-called 'golden client'
+in SystemImager stanza).
+
+As such, it does nothing else than make itself temporarily available to the
+Simple Imager server to have its image pulled via RSync, thanks to the
+'si_source' wrapper.
+

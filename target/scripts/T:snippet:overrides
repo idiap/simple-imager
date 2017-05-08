@@ -1,0 +1,32 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Download and install overrides
+siPrintSection "Download and Install (Overrides)"
+
+# Loop through overrides
+for override in ${SI_OVERRIDES//,/ }; do
+  # Download override
+  siPrintHeader "Downloading Override (${override})"
+  siLogInfo "[${0##*/}] Downloading override (${override})"
+  siDownloadOverride "${override}"
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to download override (${override})" && siConsoleError
+  siLogInfo "[${0##*/}] Done with downloading override (${override})"
+
+  # Install override
+  siPrintHeader "Installing Override (${override})"
+  siLogInfo "[${0##*/}] Installing override (${override})"
+  siInstallOverride "${override}"
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to install override (${override})" && siConsoleError
+  siLogInfo "[${0##*/}] Done with installing override (${override})"
+done
+
+# Done
+siLogInfo "[${0##*/}] Done with downloading and installing overrides"
+siPrintConfirmOptional "Done with downloading and installing overrides; proceed ?"
+

@@ -1,0 +1,10 @@
+/var/log/system-imager/si_monitor.*.log
+{
+  rotate 4
+  weekly
+  missingok
+  notifempty
+  compress
+  delaycompress
+}
+

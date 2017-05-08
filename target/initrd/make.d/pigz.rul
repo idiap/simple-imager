@@ -1,0 +1,58 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+PIGZ_INFO			:= http://zlib.net/pigz/
+PIGZ_VERSION		:= 2.3.4
+PIGZ_TARBALL		:= pigz-$(PIGZ_VERSION).tar.gz
+PIGZ_URL			:= http://zlib.net/pigz/$(PIGZ_TARBALL)
+PIGZ_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(PIGZ_TARBALL)
+PIGZ_DIR			:= $(INITRD_SOURCE_DIR)/pigz-$(PIGZ_VERSION)
+
+
+## Targets
+.PHONY: pigz_download
+pigz_download: $(PIGZ_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(PIGZ_DOWNLOAD)
+
+.PHONY: pigz_build
+pigz_build: $(PIGZ_DIR).build
+
+.PHONY: pigz_install
+pigz_install: $(PIGZ_DIR).install
+INITRD_BUILD_ALL += $(PIGZ_DIR).install
+
+.PHONY: pigz_clean
+pigz_clean: $(PIGZ_DIR).clean
+
+
+## Recipes (deps: zlib)
+$(PIGZ_DIR).build: $(PIGZ_DIR).unpack
+	cd $(PIGZ_DIR) \
+	&& sed -i "s|CFLAGS\s*=\(.*\)$$|CFLAGS=-I$(INITRD_IMAGE_DIR)/usr/include|g;s|LDFLAGS\s*=\(.*\)$$|LDFLAGS=-L$(INITRD_IMAGE_DIR)/usr/lib \1|g" Makefile \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(PIGZ_DIR).install: $(PIGZ_DIR).build
+	cd $(PIGZ_DIR) \
+	&& cp -p pigz $(INITRD_IMAGE_DIR)/usr/bin/.
+	touch $@
+
+$(PIGZ_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(PIGZ_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(PIGZ_DOWNLOAD) -x
+	touch $@
+
+$(PIGZ_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(PIGZ_DIR)
+	$(DOWNLOAD) $(PIGZ_TARBALL) $(PIGZ_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(PIGZ_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(PIGZ_DIR)*
+

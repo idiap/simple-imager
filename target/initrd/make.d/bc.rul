@@ -1,0 +1,68 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+BC_INFO				:= http://www.gnu.org/software/bc/
+BC_VERSION			:= 1.06
+BC_TARBALL			:= bc-$(BC_VERSION).tar.gz
+BC_URL				:= http://ftp.gnu.org/gnu/bc/$(BC_TARBALL)
+BC_DOWNLOAD			:= $(DOWNLOAD_DIR)/$(BC_TARBALL)
+BC_DIR				:= $(INITRD_SOURCE_DIR)/bc-$(BC_VERSION)
+
+
+## Targets
+.PHONY: bc_download
+bc_download: $(BC_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(BC_DOWNLOAD)
+
+.PHONY: bc_configure
+bc_configure: $(BC_DIR).configure
+
+.PHONY: bc_build
+bc_build: $(BC_DIR).build
+
+.PHONY: bc_install
+bc_install: $(BC_DIR).install
+INITRD_BUILD_ALL += $(BC_DIR).install
+
+.PHONY: bc_clean
+bc_clean: $(BC_DIR).clean
+
+
+## Recipes
+$(BC_DIR).configure: $(BC_DIR).unpack
+	cd $(BC_DIR) \
+	&& ./configure \
+	     --prefix=/usr \
+	     --infodir=/usr/share/info \
+	     --mandir=/usr/share/man
+	touch $@
+
+$(BC_DIR).build: $(BC_DIR).configure
+	cd $(BC_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(BC_DIR).install: $(BC_DIR).build
+	cd $(BC_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(BC_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(BC_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(BC_DOWNLOAD) -x
+	touch $@
+
+$(BC_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(BC_DIR)
+	$(DOWNLOAD) $(BC_TARBALL) $(BC_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(BC_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(BC_DIR)*
+

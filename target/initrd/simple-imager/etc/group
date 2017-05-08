@@ -1,0 +1,13 @@
+## Simple Imager
+root::0:root
+disk::2:root
+cdrom::3:root
+floppy::4:root
+tape::5:root
+audio::6:root
+video::7:root
+lp::8:root
+tty::9:root
+dialout::10:root
+kmem::11:root
+input::100:

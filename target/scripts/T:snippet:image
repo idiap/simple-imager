@@ -1,0 +1,29 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Download and install image
+siPrintSection "Download and Install (Image)"
+
+# Download image
+siPrintHeader "Downloading Image (${SI_IMAGE})"
+siLogInfo "[${0##*/}] Downloading image (${SI_IMAGE})"
+siDownloadImage "${SI_IMAGE}"
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to download image (${SI_IMAGE})" && siConsoleError
+siLogInfo "[${0##*/}] Done with downloading image (${SI_IMAGE})"
+
+# Install image
+siPrintHeader "Installing Image (${SI_IMAGE})"
+siLogInfo "[${0##*/}] Installing image (${SI_IMAGE})"
+siInstallImage "${SI_IMAGE}"
+[ $? -ne 0 ] && siLogError "[${0##*/}] Failed to install image (${SI_IMAGE})" && siConsoleError
+siLogInfo "[${0##*/}] Done with installing image (${SI_IMAGE})"
+
+# Done
+siLogInfo "[${0##*/}] Done with downloading and installing image"
+siPrintConfirmOptional "Done with downloading and installing image; proceed ?"
+

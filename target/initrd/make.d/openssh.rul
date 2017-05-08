@@ -1,0 +1,95 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+OPENSSH_INFO		:= http://www.openssh.com/
+OPENSSH_VERSION		:= 7.5p1
+OPENSSH_TARBALL		:= openssh-$(OPENSSH_VERSION).tar.gz
+OPENSSH_URL			:= https://mirrors.evowise.com/pub/OpenBSD/OpenSSH/portable/$(OPENSSH_TARBALL)
+OPENSSH_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(OPENSSH_TARBALL)
+OPENSSH_DIR			:= $(INITRD_SOURCE_DIR)/openssh-$(OPENSSH_VERSION)
+ifeq ($(ARCH),i386)
+	SSH_BUILD_CONFIG:= "--build=i486-pc-linux-gnu"
+endif
+
+
+## Targets
+.PHONY: openssh_download
+openssh_download: $(OPENSSH_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(OPENSSH_DOWNLOAD)
+
+.PHONY: openssh_configure
+openssh_configure: $(OPENSSH_DIR).configure
+
+.PHONY: openssh_build
+openssh_build: $(OPENSSH_DIR).build
+
+.PHONY: openssh_install
+openssh_install: $(OPENSSH_DIR).install
+INITRD_BUILD_ALL += $(OPENSSH_DIR).install
+
+.PHONY: openssh_clean
+openssh_clean: $(OPENSSH_DIR).clean
+
+
+## Recipes (deps: zlib, openssl)
+$(OPENSSH_DIR).configure: $(OPENSSH_DIR).unpack
+	cd $(OPENSSH_DIR) \
+	&& CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include" \
+	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   ./configure \
+	     --prefix=/usr \
+	     --sysconfdir=/etc/ssh \
+	     --disable-libutil \
+	     --disable-manpages \
+	     --disable-pututline \
+	     --disable-pututxline \
+	     --disable-utmp \
+	     --disable-utmpx \
+	     --disable-wtmp \
+	     --disable-wtmpx \
+	     --with-4in6=no \
+	     --with-ldflags=-s \
+	     --with-selinux=no \
+	     --with-ssl-dir=$(OPENSSL_DIR) \
+	     --with-xauth=no \
+	     --without-bsd-auth \
+	     --without-kerberos5 \
+	     --without-md5-passwords \
+	     --without-pam \
+	     --without-rpath \
+	     --with-zlib=$(ZLIB_DIR) \
+	     $(SSH_BUILD_CONFIG)
+	touch $@
+
+$(OPENSSH_DIR).build: $(OPENSSH_DIR).configure
+	cd $(OPENSSH_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(OPENSSH_DIR).install: $(OPENSSH_DIR).build
+	cd $(OPENSSH_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR) \
+	&& mkdir -p $(INITRD_IMAGE_DIR)/etc/ssh \
+	&& install -m 644 $(TOPDIR)/etc/ssh/ssh_config $(INITRD_IMAGE_DIR)/etc/ssh/ssh_config \
+	&& install -m 644 $(TOPDIR)/etc/ssh/sshd_config $(INITRD_IMAGE_DIR)/etc/ssh/sshd_config
+	touch $@
+
+$(OPENSSH_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(OPENSSH_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(OPENSSH_DOWNLOAD) -x
+	touch $@
+
+$(OPENSSH_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(OPENSSH_DIR)
+	$(DOWNLOAD) $(OPENSSH_TARBALL) $(OPENSSH_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(OPENSSH_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(OPENSSH_DIR)*
+

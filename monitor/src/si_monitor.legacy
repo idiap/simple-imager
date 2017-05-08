@@ -1,0 +1,31 @@
+#!/usr/bin/env python2
+# -*- mode:python; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=python tabstop=4 softtabstop=4 shiftwidth=4 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+#------------------------------------------------------------------------------
+# DEPENDENCIES
+#------------------------------------------------------------------------------
+
+# Standard
+import sys
+
+# Simple Imager
+from SimpleImager.Monitor import \
+    SI_Monitor_DaemonLegacy
+
+
+#------------------------------------------------------------------------------
+# MAIN
+#------------------------------------------------------------------------------
+
+try:
+    sys.exit(SI_Monitor_DaemonLegacy().run())
+except EnvironmentError as e:
+    sys.exit(e.errno)
+except KeyboardInterrupt as e:
+    sys.exit(-2)
+

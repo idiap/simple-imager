@@ -1,0 +1,21 @@
+## si_monitor settings
+
+# Switch to (lowercase) 'yes' when ready to roll!
+#SI_MONITOR_START='no'
+
+# Switch to (lowercase) 'legacy' for SALI/SystemImager protocol
+#SI_MONITOR_PROTOCOL='restful'
+
+# Monitoring (SQLite) database file
+#SI_MONITOR_DATABASE_FILE='/var/lib/simple-imager/si_monitor.sqlite'
+
+# Monitoring hooks (directory) path
+#SI_MONITOR_HOOKS_DIR='/etc/simple-imager/si_monitor.hooks.d'
+
+# Specific IP address to bind the daemon to.
+#SI_MONITOR_BIND='*'
+
+# TCP port to have the daemon listen on.
+# (use 8181 for 'legacy' protocol)
+#SI_MONITOR_PORT=8080
+

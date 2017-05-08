@@ -1,0 +1,68 @@
+## Repository (file location) settings
+
+# Images repository (directory) path
+#SI_REPOSITORY_IMAGES=/var/lib/simple-imager/images
+
+# Overrides repository (directory) path
+#SI_REPOSITORY_OVERRIDES=/var/lib/simple-imager/overrides
+
+# Tarballs repository (directory) path
+#SI_REPOSITORY_TARBALLS=/var/lib/simple-imager/tarballs
+
+# (Bit)Torrents repository (directory) path
+#SI_REPOSITORY_TORRENTS=/var/lib/simple-imager/torrents
+
+# Target installation scripts and configuration repository (directory) path
+#SI_REPOSITORY_SCRIPTS=/etc/simple-imager/si_target.scripts.d
+
+
+## si_source (RSync daemon) settings
+#  (allowing a source host image to be retrieved by the server)
+
+# TCP port to have the daemon listen on (rsyncd.conf: port).
+#SI_SOURCE_PORT=873
+
+
+## si_pull (Rsync client) settings
+#  (source host image retrieval by the server)
+
+# RSync exclusions file path (rsync: --exclude-file)
+#SI_PULL_EXCLUDE_FILE=/etc/simple-imager/si_pull.exclude
+
+# Space-separated list of source host filesystems (partitions) to include in
+# the image (mount)
+#SI_PULL_FILESYSTEMS='vfat ext2 ext3 ext4 xfs'
+
+
+## si_pack (tarballs/torrents) settings
+
+#SI_PACK_COMPRESSION='xz'  # or: 'none', 'gz'/'gzip', 'bz2'/'bzip2'
+
+
+## si_server (RSync and BitTorrent daemons) settings
+
+# Switch to (lowercase) 'yes' when ready to roll!
+#SI_SERVER_START='no'
+
+# Targets specification (genders file) path
+#SI_SERVER_GENDERS_FILE='/etc/genders'
+
+# Space-separated list of hostnames or IP addresses allowed to connect to
+# the daemon (rsyncd.conf: hosts_allow).
+#SI_SERVER_RSYNCD_HOSTS='127.0.0.1'
+
+# Specific IP address to bind the daemon to (rsyncd.conf: address).
+#SI_SERVER_RSYNCD_BIND='*'
+
+# TCP port to have the daemon listen on (rsyncd.conf: port).
+#SI_SERVER_RSYNCD_PORT=873
+
+# BitTorrent tracker hostname/IP address
+#SI_SERVER_BTTRACKER_HOST='127.0.0.1'
+
+# Specific IP address to bind the tracker to (bttrack: --bind).
+#SI_SERVER_BTTRACKER_BIND='*'
+
+# TCP port to have the tracker listen on (bttrack: --port).
+#SI_SERVER_BTTRACKER_PORT=6969
+

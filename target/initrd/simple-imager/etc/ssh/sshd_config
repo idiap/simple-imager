@@ -1,0 +1,49 @@
+## Simple Imager
+#  SSH server configuration
+
+# Network settings
+AddressFamily inet
+Port 22
+#ListenAddress lanhost
+#ListenAddress ip6-lanhost
+UseDNS no
+
+# Protocol settings
+Protocol 2
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_dsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+#DEPRECATED:UsePrivilegeSeparation yes
+#DEPRECATED:KeyRegenerationInterval 3600
+#DEPRECATED:ServerKeyBits 1024
+
+# Logging
+SyslogFacility AUTH
+LogLevel INFO
+
+# Authentication
+LoginGraceTime 30
+PermitRootLogin without-password
+StrictModes yes
+#DEPRECATED:RSAAuthentication yes
+PubkeyAuthentication yes
+PasswordAuthentication no
+IgnoreRhosts yes
+#DEPRECATED:RhostsRSAAuthentication no
+HostbasedAuthentication no
+PermitEmptyPasswords no
+ChallengeResponseAuthentication no
+#INVALID:UsePAM no
+
+# Features
+X11Forwarding no
+PrintMotd no
+PrintLastLog yes
+TCPKeepAlive yes
+AcceptEnv LANG LC_*
+Subsystem sftp /usr/lib/openssh/sftp-server
+Banner /etc/issue
+
+# ACL
+AllowUsers root
+

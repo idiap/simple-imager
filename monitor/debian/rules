@@ -1,0 +1,52 @@
+#!/usr/bin/make -f
+
+#export DH_VERBOSE=1
+export PACKAGE := $(shell dpkg-parsechangelog | egrep '^Source:' | cut -f 2 -d ' ')
+export VERSION := $(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ')
+
+# Required for 'help2man'
+export PYTHONPATH:=.:${PYTHONPATH}
+export PATH:=.:${PATH}
+
+%:
+	dh $@ --with systemd --with python2 --buildsystem=pybuild
+
+override_dh_pysupport:
+	# NOTE: we implement our own 'python-support' in order to package Python 2.6
+	#       even on platforms where it is deprecated
+
+override_dh_install:
+	# Support given Python2 versions
+	debian/pyshared debian/tmp 2.6 2.7
+
+	# Fix global variables
+	sed -i "s|%{VERSION}|$(VERSION)|g" debian/tmp/usr/share/pyshared/SimpleImager/Monitor/*.py
+
+	# Create man pages
+	mkdir -p debian/tmp/usr/share/man/man1
+	help2man \
+		--name 'Simple Imager - Monitor service' \
+		--help-option '--help' --version-string $(VERSION) --no-discard-stderr --no-info \
+		./usr/sbin/si_monitor | fgrep -v 'invalid option' > debian/tmp/usr/share/man/man1/si_monitor.1
+
+	# Install
+	dh_install
+
+	# Remove GIT (empty) diretory placeholders
+	find debian -type f -name .gitplaceholder -delete
+
+override_dh_installinit:
+	dh_installinit --name=si_monitor --onlyscripts
+
+override_dh_installdocs:
+	mkdir -p debian/docs.d
+	cp ../README debian/docs.d/README.SimpleImager
+	cp ../CREDITS.* debian/docs.d/.
+	dh_installdocs
+
+override_dh_clean:
+	dh_clean
+	rm -rf debian/docs.d
+	rm -rf MANIFEST build dist
+	find src -name '*.pyc' -delete
+

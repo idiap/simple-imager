@@ -1,0 +1,30 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Environment variables
+
+# System
+export PATH='/sbin:/bin:/usr/sbin:/usr/bin'
+export LD_LIBRARY_PATH='/lib:/usr/lib'
+ARCH="$(uname -m | sed 's/i.86/i386/')"
+ARCH_BITS='n/a'
+case "${ARCH}" in
+  'i386') ARCH_BITS=32;;
+  'x86_64') ARCH_BITS=64;;
+esac
+
+# Simple Imager
+SI_VERSION="$(cat /etc/si_version)"
+SI_INIT_DIR='/etc/simple-imager/init.d'
+SI_INSTALL_DIR='/etc/simple-imager/install.d'
+SI_MESSAGE_DIR='/etc/simple-imager/message.d'
+SI_VARIABLES_FILE='/tmp/simple-imager.vars'
+SI_SCRIPTS_DIR='/scripts'
+SI_TORRENTS_DIR='/torrents'
+SI_LOG_DIR='/var/log'
+

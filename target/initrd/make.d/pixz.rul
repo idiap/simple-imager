@@ -1,0 +1,69 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+PIXZ_INFO			:= https://github.com/vasi/pixz/
+PIXZ_VERSION		:= 1.0.6
+PIXZ_TARBALL		:= pixz-$(PIXZ_VERSION).tar.xz
+PIXZ_URL			:= https://github.com/vasi/pixz/releases/download/v$(PIXZ_VERSION)/$(PIXZ_TARBALL)
+PIXZ_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(PIXZ_TARBALL)
+PIXZ_DIR			:= $(INITRD_SOURCE_DIR)/pixz-$(PIXZ_VERSION)
+
+
+## Targets
+.PHONY: pixz_download
+pixz_download: $(PIXZ_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(PIXZ_DOWNLOAD)
+
+.PHONY: pixz_configure
+pixz_configure: $(PIXZ_DIR).configure
+
+.PHONY: pixz_build
+pixz_build: $(PIXZ_DIR).build
+
+.PHONY: pixz_install
+pixz_install: $(PIXZ_DIR).install
+INITRD_BUILD_ALL += $(PIXZ_DIR).install
+
+.PHONY: pixz_clean
+pixz_clean: $(PIXZ_DIR).clean
+
+
+## Recipes (deps: xz, libarchive)
+$(PIXZ_DIR).configure: $(PIXZ_DIR).unpack
+	cd $(PIXZ_DIR) \
+	&& CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include" \
+	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   ./configure \
+	     --prefix=/usr \
+	     --disable-silent-rules
+	touch $@
+
+$(PIXZ_DIR).build: $(PIXZ_DIR).configure
+	cd $(PIXZ_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(PIXZ_DIR).install: $(PIXZ_DIR).build
+	cd $(PIXZ_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(PIXZ_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(PIXZ_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(PIXZ_DOWNLOAD) -x
+	touch $@
+
+$(PIXZ_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(PIXZ_DIR)
+	$(DOWNLOAD) $(PIXZ_TARBALL) $(PIXZ_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(PIXZ_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(PIXZ_DIR)*
+

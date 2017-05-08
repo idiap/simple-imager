@@ -1,0 +1,54 @@
+#!/usr/bin/make -f
+
+# Disable hardening features
+export DEB_BUILD_MAINT_OPTIONS=hardening=-all,+pie
+
+%:
+	dh $@
+
+# Simple Imager stuff
+si_download:
+	make download
+
+si_build: si_download
+	make build
+
+si_release: si_build
+	make release
+
+si_clean:
+	make clean
+
+# Debian (debhelper) stuff
+buildflags:
+	dpkg-buildflags --status
+
+override_dh_auto_configure: si_download
+
+override_dh_auto_build: si_build
+
+override_dh_install: si_release
+	# Install
+	dh_install
+
+	# Remove build '*.mkdir' files
+	find debian -type f -name '*.mkdir' -delete
+
+	# Remove GIT (empty) diretory placeholders
+	find debian -type f -name .gitplaceholder -delete
+
+override_dh_installdocs:
+	mkdir -p debian/docs.d
+	cp ../README debian/docs.d/README.SimpleImager
+	cp ../CREDITS.* debian/docs.d/.
+	dh_installdocs
+
+# NOTE: 'make distclean' does nothing more than 'make clean' except
+#       also remove the download (cache), which is not Internet-friendly!
+override_dh_auto_clean: si_clean
+
+override_dh_clean:
+	rm -rf debian/.debhelper
+	dh_clean
+	rm -rf debian/docs.d
+

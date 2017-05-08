@@ -1,0 +1,66 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+LSSCSI_INFO			:= http://sg.danny.cz/scsi/lsscsi.html
+LSSCSI_VERSION		:= 0.28
+LSSCSI_TARBALL		:= lsscsi-$(LSSCSI_VERSION).tgz
+LSSCSI_URL			:= http://sg.danny.cz/scsi/$(LSSCSI_TARBALL)
+LSSCSI_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(LSSCSI_TARBALL)
+LSSCSI_DIR			:= $(INITRD_SOURCE_DIR)/lsscsi-$(LSSCSI_VERSION)
+
+
+## Targets
+.PHONY: lsscsi_download
+lsscsi_download: $(LSSCSI_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(LSSCSI_DOWNLOAD)
+
+.PHONY: lsscsi_configure
+lsscsi_configure: $(LSSCSI_DIR).configure
+
+.PHONY: lsscsi_build
+lsscsi_build: $(LSSCSI_DIR).build
+
+.PHONY: lsscsi_install
+lsscsi_install: $(LSSCSI_DIR).install
+INITRD_BUILD_ALL += $(LSSCSI_DIR).install
+
+.PHONY: lsscsi_clean
+lsscsi_clean: $(LSSCSI_DIR).clean
+
+
+## Recipes
+$(LSSCSI_DIR).configure: $(LSSCSI_DIR).unpack
+	cd $(LSSCSI_DIR) \
+	&& ./configure \
+	     --prefix=/usr
+	touch $@
+
+$(LSSCSI_DIR).build: $(LSSCSI_DIR).configure
+	cd $(LSSCSI_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(LSSCSI_DIR).install: $(LSSCSI_DIR).build
+	cd $(LSSCSI_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(LSSCSI_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(LSSCSI_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(LSSCSI_DOWNLOAD) -x
+	touch $@
+
+$(LSSCSI_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(LSSCSI_DIR)
+	$(DOWNLOAD) $(LSSCSI_TARBALL) $(LSSCSI_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(LSSCSI_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(LSSCSI_DIR)*
+

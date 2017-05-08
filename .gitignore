@@ -1,0 +1,14 @@
+# Ignore temporary/backup files
+*#
+*~
+semantic.cache
+
+# Ignore Python byte-compiled files
+*.pyc
+
+# Ignore build files and resources
+target/download*
+target/build*
+target/release*
+target/*.tar.*
+

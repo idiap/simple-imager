@@ -1,0 +1,60 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+BZIP2_INFO			:= http://www.bzip.org/
+BZIP2_VERSION		:= 1.0.6
+BZIP2_TARBALL		:= bzip2-$(BZIP2_VERSION).tar.gz
+BZIP2_URL			:= http://www.bzip.org/1.0.6/$(BZIP2_TARBALL)
+BZIP2_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(BZIP2_TARBALL)
+BZIP2_DIR			:= $(INITRD_SOURCE_DIR)/bzip2-$(BZIP2_VERSION)
+
+
+## Targets
+.PHONY: bzip2_download
+bzip2_download: $(BZIP2_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(BZIP2_DOWNLOAD)
+
+.PHONY: bzip2_build
+bzip2_build: $(BZIP2_DIR).build
+
+.PHONY: bzip2_install
+bzip2_install: $(BZIP2_DIR).install
+INITRD_BUILD_ALL += $(BZIP2_DIR).install
+
+.PHONY: bzip2_clean
+bzip2_clean: $(BZIP2_DIR).clean
+
+
+## Recipes
+$(BZIP2_DIR).build: $(BZIP2_DIR).unpack
+	cd $(BZIP2_DIR) \
+	&& $(MAKE) -f Makefile-libbz2_so -j $(NCPUS) \
+	&& $(MAKE) bzip2 -j $(NCPUS)
+	touch $@
+
+$(BZIP2_DIR).install: $(BZIP2_DIR).build
+	cd $(BZIP2_DIR) \
+	&& $(MAKE) install PREFIX=$(INITRD_IMAGE_DIR)/usr
+	ln -fs bzip2 $(INITRD_IMAGE_DIR)/usr/bin/bunzip2
+	ln -fs bzip2 $(INITRD_IMAGE_DIR)/usr/bin/bzcat
+	touch $@
+
+$(BZIP2_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(BZIP2_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(BZIP2_DOWNLOAD) -x
+	touch $@
+
+$(BZIP2_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(BZIP2_DIR)
+	$(DOWNLOAD) $(BZIP2_TARBALL) $(BZIP2_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(BZIP2_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(BZIP2_DIR)*
+

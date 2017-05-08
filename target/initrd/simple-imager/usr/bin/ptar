@@ -1,0 +1,36 @@
+#!/bin/sh
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Usage
+[ $# -lt 1 ] && cat << EOF && exit 1
+USAGE:
+  ${0##*/} <file> [<tar-options>]
+
+SYNOPSIS:
+  Wrapper around 'tar' that uses parallel compression algorithms implentation
+  (pigz, pbzip2, pixz, etc.) if available.
+EOF
+
+# Arguments
+MY_FILE="${1}"; shift
+
+
+## Wrapper
+
+# Compression
+case "${MY_FILE##*.}" in
+  'xz'|'txz') [ -n "$(which pixz)" ] && MY_TAR_OPTS='-Ipixz' || MY_TAR_OPTS='-J';;
+  'bzip2'|'bz2'|'tbz2') [ -n "$(which pbzip2)" ] && MY_TAR_OPTS='-Ipbzip2' || MY_TAR_OPTS='-j';;
+  'gzip'|'gz'|'tgz') [ -n "$(which pigz)" ] && MY_TAR_OPTS='-Ipigz' || MY_TAR_OPTS='-z';;
+  *) MY_TAR_OPTS='';;
+esac
+
+# Tar
+echo "NOTICE: [${0##*/}] Compression option: ${MY_TAR_OPTS}"
+tar ${MY_TAR_OPTS} -f "${MY_FILE}" "$@"
+

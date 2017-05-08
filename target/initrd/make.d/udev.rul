@@ -1,0 +1,77 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2010-2013 SURFsara [SALI]
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+UDEV_INFO			:= https://wiki.gentoo.org/wiki/Eudev
+UDEV_VERSION		:= 3.2.1
+UDEV_TARBALL		:= eudev-$(UDEV_VERSION).tar.gz
+UDEV_URL			:= https://github.com/gentoo/eudev/archive/v$(UDEV_VERSION).tar.gz
+UDEV_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(UDEV_TARBALL)
+UDEV_DIR			:= $(INITRD_SOURCE_DIR)/eudev-$(UDEV_VERSION)
+
+
+## Targets
+.PHONY: udev_download
+udev_download: $(UDEV_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(UDEV_DOWNLOAD)
+
+.PHONY: udev_configure
+udev_configure: $(UDEV_DIR).configure
+
+.PHONY: udev_build
+udev_build: $(UDEV_DIR).build
+
+.PHONY: udev_install
+udev_install: $(UDEV_DIR).install
+INITRD_BUILD_ALL += $(UDEV_DIR).install
+
+.PHONY: udev_clean
+udev_clean: $(UDEV_DIR).clean
+
+
+## Recipes (deps: linutil, kmod)
+$(UDEV_DIR).configure: $(UDEV_DIR).unpack
+	cd $(UDEV_DIR) \
+	&& autoreconf -f -i -s \
+	&& CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include" \
+	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   ./configure \
+	     --prefix=/usr \
+	     --sysconfdir=/etc \
+	     --with-sysroot=$(INITRD_IMAGE_DIR) \
+	     --disable-introspection \
+	     --disable-manpages \
+	     --disable-selinux \
+	     --disable-silent-rules
+	touch $@
+
+$(UDEV_DIR).build: $(UDEV_DIR).configure
+	cd $(UDEV_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(UDEV_DIR).install: $(UDEV_DIR).build
+	cd $(UDEV_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	@echo "## Keep classic 'ethN' NIC naming"
+	touch $(INITRD_IMAGE_DIR)/etc/udev/rules.d/80-net-name-slot.rules
+	touch $@
+
+$(UDEV_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(UDEV_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(UDEV_DOWNLOAD) -x
+	touch $@
+
+$(UDEV_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(UDEV_DIR)
+	$(DOWNLOAD) $(UDEV_TARBALL) $(UDEV_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(UDEV_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(UDEV_DIR)*
+

@@ -1,0 +1,22 @@
+##/bin/sh (this file MUST be sourced)
+# -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
+# ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
+## Simple Imager
+# Copyright (C) 2017 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Network setup
+siPrintSection 'NETWORK SETUP [si_install:network]'
+siLogInfo '[si_install:network] Network setup'
+
+# Initialize
+siPrintHeader 'Network Initialization'
+siNetworkInit
+[ $? -ne 0 ] && siConsoleError
+siLogInfo '[si_install:network] Network initialized'
+
+# Done
+siPrintHeader 'Done'
+siLogInfo '[si_install:network] Done with network setup'
+
