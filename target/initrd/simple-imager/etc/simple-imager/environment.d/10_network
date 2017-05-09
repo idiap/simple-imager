@@ -28,15 +28,18 @@ EOF
   # Retrieve (U)DHCP-client configured settings
   [ ! -f /tmp/udhcpc.${SI_NET_DEV}.vars ] && siLogError "[Network:DHCP] Missing/invalid UDHCP-client variables file (/tmp/udhcpc.${SI_NET_DEV}.vars)" && return 1
   . /tmp/udhcpc.${SI_NET_DEV}.vars
-  # ... host name [required]
-  [ -z "${DHCP_HOSTNAME}" ] && siLogError '[Network:DHCP] Failed to retrieve DHCP-configured host name' && return 1
-  [ -n "${HOSTNAME}" -a "${HOSTNAME}" != '%DHCP%' ] && siLogWarning "[Network:DHCP] User-provided host name overridden by DHCP (was ${HOSTNAME})"
-  siVariablesSave HOSTNAME "${DHCP_HOSTNAME}"
   # ... domain name [optional]
   if [ -n "${DHCP_DOMAINNAME}" ]; then
     [ -n "${DOMAINNAME}" -a "${DOMAINNAME}" != '%DHCP%' ] && siLogWarning "[Network:DHCP] User-provided domain name overridden by DHCP (was ${DOMAINNAME})"
     siVariablesSave DOMAINNAME "${DHCP_DOMAINNAME}"
+  elif [ "${DOMAINNAME}" == '%DHCP%' ]; then
+    siLogWarning '[Network:DHCP] DHCP provided no domain name'
+    siVariablesSave DOMAINNAME ''
   fi
+  # ... host name [required]
+  [ -z "${DHCP_HOSTNAME}" ] && siLogError '[Network:DHCP] Failed to retrieve DHCP-configured host name' && return 1
+  [ -n "${HOSTNAME}" -a "${HOSTNAME}" != '%DHCP%' ] && siLogWarning "[Network:DHCP] User-provided host name overridden by DHCP (was ${HOSTNAME})"
+  siVariablesSave HOSTNAME "${DHCP_HOSTNAME%.${DOMAINNAME}}"
   # ... address [required]
   [ -z "${DHCP_ADDR}" ] && siLogError '[Network:DHCP] Failed to retrieve DHCP-configured IP address' && return 1
   [ -n "${SI_NET_ADDR}" -a "${SI_NET_ADDR}" != '%DHCP%' ] && siLogWarning "[Network:DHCP] User-provided IP address overridden by DHCP (was ${SI_NET_ADDR})"
@@ -49,27 +52,37 @@ EOF
   if [ -n "${DHCP_BCAST}" ]; then
     [ -n "${SI_NET_BCAST}" -a "${SI_NET_BCAST}" != '%DHCP%' ] && siLogWarning "[Network:DHCP] User-provided broadcast address overridden by DHCP (was ${SI_NET_BCAST})"
     siVariablesSave SI_NET_BCAST "${DHCP_BCAST}"
+  elif [ "${SI_NET_BCAST}" == '%DHCP%' ]; then
+    siLogWarning '[Network:DHCP] DHCP provided no broadcast address'
+    siVariablesSave SI_NET_BCAST ''
   fi
   # ... gateway(s) [optional]
   if [ -n "${DHCP_GW}" ]; then
     [ -n "${SI_NET_GW}" -a "${SI_NET_GW}" != '%DHCP%' ] && siLogWarning "[Network:DHCP] User-provided gateway(s) overridden by DHCP (was ${SI_NET_GW})"
     siVariablesSave SI_NET_GW "${DHCP_GW}"
+  elif [ "${SI_NET_GW}" == '%DHCP%' ]; then
+    siLogWarning '[Network:DHCP] DHCP provided no gateway(s)'
+    siVariablesSave SI_NET_GW ''
   fi
   # ... DNS server(s) [optional]
   if [ -n "${DHCP_DNS}" ]; then
     [ -n "${SI_NET_DNS}" -a "${SI_NET_DNS}" != '%DHCP%' ] && siLogWarning "[Network:DHCP] User-provided DNS server(s) overridden by DHCP (was ${SI_NET_DNS})"
-    SI_NET_DNS="${DHCP_DNS}"
     siVariablesSave SI_NET_DNS "${DHCP_DNS}"
+  elif [ "${SI_NET_DNS}" == '%DHCP%' ]; then
+    siLogWarning '[Network:DHCP] DHCP provided no DNS server(s)'
+    siVariablesSave SI_NET_DNS ''
   fi
   # ... NTP server(s) [optional]
   if [ -n "${DHCP_NTP}" ]; then
     [ -n "${SI_NET_NTP}" -a "${SI_NET_NTP}" != '%DHCP%' ] && siLogWarning "[Network:DHCP] User-provided NTP server(s) overridden by DHCP (was ${SI_NET_NTP})"
-    SI_NET_NTP="${DHCP_NTP}"
     siVariablesSave SI_NET_NTP "${DHCP_NTP}"
+  elif [ "${SI_NET_NTP}" == '%DHCP%' ]; then
+    siLogWarning '[Network:DHCP] DHCP provided no NTP server(s)'
+    siVariablesSave SI_NET_NTP ''
   fi
   # ... Simple Imager server [required]
   if [ "${SI_SERVER}" == '%DHCP%' ]; then
-    [ -z "${DHCP_SI_SERVER}" ] && siLogError "[Network:DHCP] Simple Imager server not provided by DHCP (option 225=si-server)" && return 1
+    [ -z "${DHCP_SI_SERVER}" ] && siLogError "[Network:DHCP] DHCP provided no Simple Imager server (option 225=si-server)" && return 1
     local server="${DHCP_SI_SERVER%%!*}" protocol="${DHCP_SI_SERVER#*!}"
     siVariablesSave SI_SERVER "${server}"
     if [ "${protocol}" != "${server}" ]; then
@@ -81,7 +94,7 @@ EOF
   fi
   # ... Simple Imager monitor [optional]
   if [ "${SI_MONITOR}" == '%DHCP%' ]; then
-    [ -z "${DHCP_SI_MONITOR}" ] && siLogWarning "[Network:DHCP] Simple Imager monitor not provided by DHCP (option 226=si-monitor)"
+    [ -z "${DHCP_SI_MONITOR}" ] && siLogWarning "[Network:DHCP] DHCP provided no Simple Imager monitor (option 226=si-monitor)"
     local monitor="${DHCP_SI_MONITOR%%!*}" protocol="${DHCP_SI_MONITOR#*!}"
     siVariablesSave SI_MONITOR "${monitor}"
     if [ "${protocol}" != "${monitor}" ]; then
@@ -90,7 +103,7 @@ EOF
   fi
   # ... Syslog [optional]
   if [ "${SI_SYSLOG}" == '%DHCP%' ]; then
-    [ -z "${DHCP_SI_SYSLOG}" ] && siLogWarning "[Network:DHCP] Remote syslog server not provided by DHCP (option 227=si-syslog)"
+    [ -z "${DHCP_SI_SYSLOG}" ] && siLogWarning "[Network:DHCP] DHCP provided no remote syslog server (option 227=si-syslog)"
     siVariablesSave SI_SYSLOG "${DHCP_SI_SYSLOG}"
   fi
 
