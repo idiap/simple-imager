@@ -1,3 +1,10 @@
+simple-imager-target (2017.05.09a) UNRELEASED; urgency=low
+
+  * FIX: Correctly handle short vs full hostname when DHCP provides the latter
+  * MOD: Use the full hostname in 'genders' configuration file
+
+ -- Cédric Dufour <cedric.dufour@ced-network.net>  Tue, 09 May 2017 14:21:03 +0200
+
 simple-imager-target (2017.05.02a) UNRELEASED; urgency=low
 
   * Post Tenebras Lux
