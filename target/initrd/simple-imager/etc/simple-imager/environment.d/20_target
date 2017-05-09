@@ -14,7 +14,7 @@ _siTargetInitGenders() {
 
   # Import installation parameters
   local parameter name value config_vars="/tmp/genders.vars"
-  siShellCommand nodeattr -f "${config}" -l "${HOSTNAME}" | grep '^si_[^=]*=' > "${config_vars}"
+  siShellCommand nodeattr -f "${config}" -l "${SI_HOSTFULL}" | grep '^si_[^=]*=' > "${config_vars}"
   [ $? -ne 0 ] && siLogError "[Target:init(genders)] Failed to dump installation parameters from file (${config})" && return 1
   for parameter in $(cat "${config_vars}"); do
     siLogDebug "[Target:init(genders)] Parsing parameter (${parameter})"
