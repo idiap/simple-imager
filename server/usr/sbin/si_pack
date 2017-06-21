@@ -94,8 +94,8 @@ esac
 
 
 ## List images/overrides
-MY_PACK_IMAGES="$(find "${MY_REPOSITORY_IMAGES}/" -mindepth 1 -maxdepth 1 -type d | sed 's|.*/||g' | tr '\n' ' ')"
-MY_PACK_OVERRIDES="$(find "${MY_REPOSITORY_OVERRIDES}/" -mindepth 1 -maxdepth 1 -type d | sed 's|.*/||g' | tr '\n' ' ')"
+MY_PACK_IMAGES="$(find "${MY_REPOSITORY_IMAGES}/" -mindepth 1 -maxdepth 1 -type d | sort | sed 's|.*/||g' | tr '\n' ' ')"
+MY_PACK_OVERRIDES="$(find "${MY_REPOSITORY_OVERRIDES}/" -mindepth 1 -maxdepth 1 -type d | sort | sed 's|.*/||g' | tr '\n' ' ')"
 
 
 ## Check (cont'd)
