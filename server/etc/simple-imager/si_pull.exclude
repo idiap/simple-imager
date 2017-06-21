@@ -20,6 +20,7 @@ lost+found
 
 # DHCP stuff
 /var/lib/dhcp/*
+/var/lib/ntp/*.dhcp
 
 # NFS stuff
 /var/lib/nfs/state
