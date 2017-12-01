@@ -8,7 +8,7 @@
 
 ## Variables
 COREUTILS_INFO		:= https://www.gnu.org/software/coreutils/
-COREUTILS_VERSION	:= 8.27
+COREUTILS_VERSION	:= 8.28
 COREUTILS_TARBALL	:= coreutils-$(COREUTILS_VERSION).tar.xz
 COREUTILS_URL		:= http://ftp.gnu.org/gnu/coreutils/$(COREUTILS_TARBALL)
 COREUTILS_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(COREUTILS_TARBALL)

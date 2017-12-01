@@ -8,9 +8,9 @@
 
 ## Variables
 ARIA2_INFO			:= https://aria2.github.io/
-ARIA2_VERSION		:= 1.31.0
+ARIA2_VERSION		:= 1.33.1
 ARIA2_TARBALL		:= aria2-$(ARIA2_VERSION).tar.xz
-ARIA2_URL			:= https://github.com/aria2/aria2/releases/download/release-1.31.0/$(ARIA2_TARBALL)
+ARIA2_URL			:= https://github.com/aria2/aria2/releases/download/release-${ARIA2_VERSION}/$(ARIA2_TARBALL)
 ARIA2_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(ARIA2_TARBALL)
 ARIA2_DIR			:= $(INITRD_SOURCE_DIR)/aria2-$(ARIA2_VERSION)
 ARIA2_PATCHES		:= $(shell find $(INITRD_PATCH_DIR) -type f -name "aria2.*.patch" -exec basename {} \; | sort)

@@ -8,7 +8,7 @@
 
 ## Variables
 BC_INFO				:= http://www.gnu.org/software/bc/
-BC_VERSION			:= 1.06
+BC_VERSION			:= 1.07.1
 BC_TARBALL			:= bc-$(BC_VERSION).tar.gz
 BC_URL				:= http://ftp.gnu.org/gnu/bc/$(BC_TARBALL)
 BC_DOWNLOAD			:= $(DOWNLOAD_DIR)/$(BC_TARBALL)

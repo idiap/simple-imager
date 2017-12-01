@@ -8,7 +8,7 @@
 
 ## Variables
 LIBARCHIVE_INFO		:= http://www.libarchive.org/
-LIBARCHIVE_VERSION	:= 3.3.1
+LIBARCHIVE_VERSION	:= 3.3.2
 LIBARCHIVE_TARBALL	:= libarchive-$(LIBARCHIVE_VERSION).tar.gz
 LIBARCHIVE_URL		:= http://www.libarchive.org/downloads/$(LIBARCHIVE_TARBALL)
 LIBARCHIVE_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(LIBARCHIVE_TARBALL)

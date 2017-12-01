@@ -8,7 +8,7 @@
 
 ## Variables
 LVM_INFO			:= http://sources.redhat.com/lvm2/
-LVM_VERSION			:= 2.2.02.170
+LVM_VERSION			:= 2.2.02.176
 LVM_TARBALL			:= LVM$(LVM_VERSION).tgz
 LVM_URL				:= ftp://sources.redhat.com/pub/lvm2/releases/$(LVM_TARBALL)
 LVM_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(LVM_TARBALL)

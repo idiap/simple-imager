@@ -8,7 +8,7 @@
 
 ## Variables
 USBUTILS_INFO		:= https://www.kernel.org/pub/linux/utils/usb/usbutils/
-USBUTILS_VERSION	:= 008
+USBUTILS_VERSION	:= 009
 USBUTILS_TARBALL 	:= usbutils-$(USBUTILS_VERSION).tar.xz
 USBUTILS_URL		:= https://www.kernel.org/pub/linux/utils/usb/usbutils/$(USBUTILS_TARBALL)
 USBUTILS_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(USBUTILS_TARBALL)

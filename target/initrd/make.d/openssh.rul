@@ -8,7 +8,7 @@
 
 ## Variables
 OPENSSH_INFO		:= http://www.openssh.com/
-OPENSSH_VERSION		:= 7.5p1
+OPENSSH_VERSION		:= 7.6p1
 OPENSSH_TARBALL		:= openssh-$(OPENSSH_VERSION).tar.gz
 OPENSSH_URL			:= https://mirrors.evowise.com/pub/OpenBSD/OpenSSH/portable/$(OPENSSH_TARBALL)
 OPENSSH_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(OPENSSH_TARBALL)

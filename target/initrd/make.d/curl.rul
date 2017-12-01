@@ -8,8 +8,8 @@
 
 ## Variables
 CURL_INFO			:= http://curl.haxx.se/
-CURL_VERSION		:= 7.52.1
-CURL_TARBALL		:= curl-$(CURL_VERSION).tar.lzma
+CURL_VERSION		:= 7.57.0
+CURL_TARBALL		:= curl-$(CURL_VERSION).tar.xz
 CURL_URL			:= https://curl.haxx.se/download/$(CURL_TARBALL)
 CURL_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(CURL_TARBALL)
 CURL_DIR			:= $(INITRD_SOURCE_DIR)/curl-$(CURL_VERSION)

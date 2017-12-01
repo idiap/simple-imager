@@ -8,7 +8,7 @@
 
 ## Variables
 KEXEC_INFO			:= http://kernel.org/pub/linux/utils/kernel/kexec/
-KEXEC_VERSION		:= 2.0.14
+KEXEC_VERSION		:= 2.0.16
 KEXEC_TARBALL		:= kexec-tools-$(KEXEC_VERSION).tar.xz
 KEXEC_URL			:= https://www.kernel.org/pub/linux/utils/kernel/kexec/$(KEXEC_TARBALL)
 KEXEC_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(KEXEC_TARBALL)

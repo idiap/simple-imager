@@ -8,7 +8,7 @@
 
 ## Variables
 BUSYBOX_INFO		:= http://www.busybox.net/
-BUSYBOX_VERSION		:= 1.26.2
+BUSYBOX_VERSION		:= 1.27.2
 BUSYBOX_TARBALL		:= busybox-$(BUSYBOX_VERSION).tar.bz2
 BUSYBOX_URL			:= http://busybox.net/downloads/$(BUSYBOX_TARBALL)
 BUSYBOX_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(BUSYBOX_TARBALL)

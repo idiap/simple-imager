@@ -8,7 +8,7 @@
 
 ## Variables
 UTILLINUX_INFO		:= https://www.kernel.org/pub/linux/utils/util-linux/
-UTILLINUX_VERSION	:= 2.29.2
+UTILLINUX_VERSION	:= 2.31
 UTILLINUX_VERSHORT	:= $(shell echo $(UTILLINUX_VERSION) | sed 's/^\([^.]*\.[^.]*\)\..*$$/\1/')
 UTILLINUX_TARBALL	:= util-linux-$(UTILLINUX_VERSION).tar.xz
 UTILLINUX_URL		:= https://www.kernel.org/pub/linux/utils/util-linux/v$(UTILLINUX_VERSHORT)/$(UTILLINUX_TARBALL)
