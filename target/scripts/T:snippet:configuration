@@ -19,10 +19,10 @@ siLogInfo "[${0##*/}] Configuring disk"
 
 # ... /etc/fstab
 siLogNotice "[${0##*/}] Configuring /etc/fstab"
-MY_UUID_BOOT="$(blkid ${MY_PART_BOOT} | sed 's|^.*\sUUID="\([^"]*\)".*$|UUID=\1|' | grep '^UUID=[-0-9a-f]*$')"
+MY_UUID_BOOT="$(blkid ${MY_PART_BOOT} | sed 's|^.*\sUUID="\([^"]*\)".*$|UUID=\1|' | grep -i '^UUID=[-0-9a-f]*$')"
 [ -z "${MY_UUID_BOOT}" ] && MY_UUID_BOOT="${MY_PART_BOOT}"
 if [ -n "${MY_PART_ESP}" ]; then
-  MY_UUID_ESP="$(blkid ${MY_PART_ESP} | sed 's|^.*\sUUID="\([^"]*\)".*$|UUID=\1|' | grep '^UUID=[-0-9a-f]*$')"
+  MY_UUID_ESP="$(blkid ${MY_PART_ESP} | sed 's|^.*\sUUID="\([^"]*\)".*$|UUID=\1|' | grep -i '^UUID=[-0-9a-f]*$')"
   [ -z "${MY_UUID_ESP}" ] && MY_UUID_ESP="${MY_PART_ESP}"
 fi
 cat > "${SI_DISK_TARGET}/etc/fstab" << EOF
