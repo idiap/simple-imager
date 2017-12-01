@@ -11,10 +11,15 @@ siPrintHeader "Selecting Target Disk and Partitions"
 
 # Device
 if [ -z "${SI_DISK_DEV}" -o "${SI_DISK_DEV}" == '%AUTO%' ]; then
-  if [ -e /dev/vda ]; then
+  if [ -e /dev/nvme0n1 ]; then
+    siVariablesSave SI_DISK_DEV '/dev/nvme0n1'
+    siVariablesSave MY_PART_DEV "${SI_DISK_DEV}p"
+  elif [ -e /dev/vda ]; then
     siVariablesSave SI_DISK_DEV '/dev/vda'
+    siVariablesSave MY_PART_DEV "${SI_DISK_DEV}"
   else
     siVariablesSave SI_DISK_DEV '/dev/sda'
+    siVariablesSave MY_PART_DEV "${SI_DISK_DEV}"
   fi
 elif [ "${SI_DISK_DEV:0:5}" != '/dev/' ]; then
   siVariablesSave SI_DISK_DEV="/dev/${SI_DISK_DEV}"
@@ -23,13 +28,13 @@ siLogDebug "[${0##*/}] Target disk: ${SI_DISK_DEV}"
 
 # Partitions
 if [ -e /sys/firmware/efi ]; then
-  siVariablesSave MY_PART_ESP "${SI_DISK_DEV}1"
-  siVariablesSave MY_PART_BOOT "${SI_DISK_DEV}2"
-  siVariablesSave MY_PART_LVM "${SI_DISK_DEV}3"
+  siVariablesSave MY_PART_ESP "${MY_PART_DEV}1"
+  siVariablesSave MY_PART_BOOT "${MY_PART_DEV}2"
+  siVariablesSave MY_PART_LVM "${MY_PART_DEV}3"
 else
   siVariablesSave MY_PART_ESP ''
-  siVariablesSave MY_PART_BOOT "${SI_DISK_DEV}1"
-  siVariablesSave MY_PART_LVM "${SI_DISK_DEV}2"
+  siVariablesSave MY_PART_BOOT "${MY_PART_DEV}1"
+  siVariablesSave MY_PART_LVM "${MY_PART_DEV}2"
 fi
 siLogDebug "[${0##*/}] (U)EFI system partition: ${MY_PART_ESP:-n/a}"
 siLogDebug "[${0##*/}] Boot partition: ${MY_PART_BOOT:-n/a}"
@@ -52,7 +57,8 @@ siPrintHeader "Checking Disk Status"
 
 # More than one disk
 siLogNotice "[${0##*/}] Checking for unexpected disk(s)"
-for disk_check in /dev/[hsv]d[b-z]; do
+for disk_check in /dev/nvme[0-9]n[0-9] /dev/[hsv]d[a-z]; do
+  [ "${disk_check}" == "${SI_DISK_DEV}" ] && continue
   [ -e "${disk_check}" ] && siLogError "[${0##*/}] Unexpected disk detected (${disk_check})" && siConsoleError
 done
 unset disk_check
@@ -96,9 +102,9 @@ if siMiscIsTrue "${SI_DISK_PART}"; then
   siLogInfo "Partitioning disk (${SI_DISK_DEV})"
 
   # Wipe the MBR (Master Boot Record)
-  siLogNotice "[${0##*/}] Wiping disk Master Boor Record (${SI_DISK_DEV})"
+  siLogNotice "[${0##*/}] Wiping disk Master Boot Record (${SI_DISK_DEV})"
   siShellCommand dd if=/dev/zero of=${SI_DISK_DEV} bs=1024 count=1
-  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to wipe disk Master Boor Record (${SI_DISK_DEV})" && siConsoleError
+  [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to wipe disk Master Boot Record (${SI_DISK_DEV})" && siConsoleError
 
   # Re-read the disk partition table
   siLogNotice "[${0##*/}] Reading disk partition table (${SI_DISK_DEV})"
@@ -125,9 +131,9 @@ if siMiscIsTrue "${SI_DISK_PART}"; then
     siShellCommand parted -s -- ${SI_DISK_DEV} mkpart primary ${start_mb} ${end_mb}
     [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create (U)EFI system partition (${MY_PART_ESP})" && siConsoleError
     last_mb=${end_mb}
-    siShellCommand parted -s -- ${SI_DISK_DEV} set ${MY_PART_ESP#${SI_DISK_DEV}} esp on
+    siShellCommand parted -s -- ${SI_DISK_DEV} set ${MY_PART_ESP#${MY_PART_DEV}} esp on
     [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to set (U)EFI system partition 'esp' flag (${MY_PART_ESP})" && siConsoleError
-    siShellCommand parted -s -- ${SI_DISK_DEV} set ${MY_PART_ESP#${SI_DISK_DEV}} boot on
+    siShellCommand parted -s -- ${SI_DISK_DEV} set ${MY_PART_ESP#${MY_PART_DEV}} boot on
     [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to set (U)EFI system partition 'boot' flag (${MY_PART_ESP})" && siConsoleError
   fi
   
@@ -139,7 +145,7 @@ if siMiscIsTrue "${SI_DISK_PART}"; then
   [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create boot partition (${MY_PART_BOOT})" && siConsoleError
   last_mb=${end_mb}
   if [ -z "${MY_PART_ESP}" ]; then
-    siShellCommand parted -s -- ${SI_DISK_DEV} set ${MY_PART_BOOT#${SI_DISK_DEV}} boot on
+    siShellCommand parted -s -- ${SI_DISK_DEV} set ${MY_PART_BOOT#${MY_PART_DEV}} boot on
     [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to set boot partition 'boot' flag (${MY_PART_BOOT})" && siConsoleError
   fi
 
@@ -149,7 +155,7 @@ if siMiscIsTrue "${SI_DISK_PART}"; then
   end_mb=${MY_DISK_SIZE}
   siShellCommand parted -s -- ${SI_DISK_DEV} mkpart primary ${start_mb} ${end_mb}
   [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to create LVM partition (${MY_PART_LVM})" && siConsoleError
-  siShellCommand parted -s -- ${SI_DISK_DEV} set ${MY_PART_LVM#${SI_DISK_DEV}} lvm on
+  siShellCommand parted -s -- ${SI_DISK_DEV} set ${MY_PART_LVM#${MY_PART_DEV}} lvm on
   [ $? -ne 0 ] && siLogError "[${0##*/}] Failed to set LVM partition 'lvm' flag (${MY_PART_LVM})" && siConsoleError
 
   # ... configure LVM to ignore shared LUNs
