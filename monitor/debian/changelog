@@ -1,3 +1,11 @@
+simple-imager-monitor (2017.12.04a) UNRELEASED; urgency=low
+
+  * Debian: added 'python-six' to dependencies
+  * Minor: removed dead code
+  * FIX: Invalid status (init) in RESTful mode
+
+ -- Cédric Dufour <cedric.dufour@ced-network.net>  Mon, 04 Dec 2017 15:50:47 +0100
+
 simple-imager-monitor (2017.05.02a) UNRELEASED; urgency=low
 
   * Post Tenebras Lux
