@@ -149,51 +149,6 @@ class SI_Monitor_Daemon:
         return 0
 
 
-    def _initDatabase(self):
-        """
-        Initialize the SQLite database; returns a non-zero exit code in case of failure.
-        """
-
-        self._oLogger.debug('Opening database; %s' % self._oArguments.database)
-        try:
-            self.__oDatabase = sqlite3.connect(database=self._oArguments.database, isolation_level=None, check_same_thread=False)
-        except Exception as e:
-            self._oLogger.error('Failed to open database; %s' % str(e))
-            return errno.EIO
-        # ... initialize table
-        try:
-            self.__oDatabase.execute('CREATE TABLE si_monitor(mac TEXT, ip TEXT, host TEXT, status TEXT, change REAL, message TEXT, progress INTEGER, speed INTEGER, heartbeat REAL)')
-        except sqlite3.OperationalError as e:
-            # Most likely, the table already exists
-            pass
-        except Exception as e:
-            self._oLogger.error('Failed to initialize database; %s' % str(e))
-            return errno.EIO
-
-        return 0
-
-
-    def _initHooks(self):
-        """
-        Initialize the processing hooks (scripts); returns a non-zero exit code in case of failure.
-        """
-
-        if len(self._oArguments.hooks):
-            if not os.path.isdir(self._oArguments.hooks):
-                self._oLogger.warning('Missing/invalid hooks directory; %s' % self._oArguments.hooks)
-            else:
-                for sHook in ['start', 'download', 'install', 'complete', 'error']:
-                    sFileHook = self._oArguments.hooks.rstrip(os.sep)+os.sep+sHook
-                    if os.path.isfile(sFileHook):
-                        if (os.stat(sFileHook).st_mode & (stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)):
-                            self._oLogger.debug('Registering hook; %s' % sFileHook)
-                            self.__dFileHooks[sHook] = sFileHook
-                        else:
-                            self._oLogger.warning('Hook is not executable; %s' % sFileHook)
-
-        return 0
-
-
     # Logging
     #------------------------------------------------------------------------------
 
