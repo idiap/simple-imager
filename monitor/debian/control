@@ -14,7 +14,7 @@ Description: Simple Imager - Monitoring server utilities and service
 
 Package: simple-imager-monitor-python2
 Architecture: all
-Depends: python (>= 2.6), python (<< 3), python-argparse, python-daemon, python-flask
+Depends: python (>= 2.6), python (<< 3), python-argparse, python-daemon, python-flask, python-six
 Description: Simple Imager - Monitoring server utilities and service - Python 2.x library
 
 Package: simple-imager-monitor-python2.6
