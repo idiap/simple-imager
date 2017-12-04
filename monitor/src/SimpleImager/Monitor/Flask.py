@@ -133,7 +133,9 @@ def update():
         sMessage = dData['message'] if 'message' in dData else ''
         iProgress = -1
         iSpeed = -1
-        if sStatus=='start':
+        if sStatus=='init':
+            pass
+        elif sStatus=='start':
             pass
         elif sStatus=='pre-install':
             if 'progress' in dData:
