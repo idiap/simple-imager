@@ -1,3 +1,27 @@
+simple-imager-target (2017.12.01a) UNRELEASED; urgency=low
+
+  * NEW: Support NVMe storage devices
+  * FIX: Uppercase partition UUIDs not being detected/used
+  * MOD: Updated kernet and initrd resources versions
+         kernel:     4.9.20 -> 4.9.66
+         aria2:      1.31.0 -> 1.33.1
+         bc:         1.06   -> 1.07.1
+         busybox:    1.26.2 -> 1.27.2
+         coreutils:  8.27   -> 8.28
+         curl:       7.52.1 -> 7.57.0
+         e2fsprogs:  1.43.4 -> 1.43.7
+         kexec:      2.0.14 -> 2.0.16
+         libarchive: 3.3.1  -> 3.3.2
+         libxml2:    2.9.4  -> 2.9.7
+         lvm:        2.2.02.170 -> 2.2.02.176
+         openssh:    7.5p1  -> 7.6p1
+         openssl:    1.0.2k -> 1.0.2m
+         udev:       3.2.1  -> 3.2.5
+         usbutils:   008    -> 009
+         utillinux:  2.29.2 -> 2.31
+    
+ -- Cédric Dufour <cedric.dufour@ced-network.net>  Fri, 01 Dec 2017 16:56:32 +0100
+
 simple-imager-target (2017.05.09a) UNRELEASED; urgency=low
 
   * FIX: Correctly handle short vs full hostname when DHCP provides the latter
