@@ -1,3 +1,10 @@
+simple-imager-server (2017.12.01a) UNRELEASED; urgency=low
+
+  * FIX: Add dynamic (DHCP) NTP configuration files to 'si_pull.exclude'
+  * MOD: 'si_pack' images/overrides in sorted order
+
+ -- Cédric Dufour <cedric.dufour@ced-network.net>  Fri, 01 Dec 2017 16:56:32 +0100
+
 simple-imager-server (2017.05.02a) UNRELEASED; urgency=low
 
   * Post Tenebras Lux
