@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- mode:python; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
 # ex: filetype=python tabstop=4 softtabstop=4 shiftwidth=4 expandtab autoindent smartindent
 
@@ -24,7 +24,7 @@ download, install, complete and error).
     download_url = 'https://github.com/cedric-dufour/simple-imager',
     package_dir = { '': 'src' },
     packages = [ 'SimpleImager', 'SimpleImager.Monitor' ],
-    requires = [ 'argparse', 'daemon', 'flask' ],
+    requires = [ 'daemon', 'flask' ],
     scripts = [ 'src/si_monitor.legacy', 'src/si_monitor.restful' ],
     )
 

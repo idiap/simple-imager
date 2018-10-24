@@ -50,7 +50,7 @@ Configuration parameters are:
 
 Configuration may be set manually, using 'SI_Monitor_Flask.config.update(...)',
 or by setting the SI_MONITOR_FLASK_CONFIG environment variable for use by
-'SI_Monitor_Flask.config.from_ennvar(...)'.
+'SI_Monitor_Flask.config.from_envvar(...)'.
 """
 SI_Monitor_Flask = Flask(__name__)
 
@@ -188,7 +188,6 @@ def queryHTML(_sKey=None, _sValue=None):
     SI_Monitor_Flask.logger.debug('[%s(queryHTML)] Processing client request' % sClient)
 
     # Query backend
-    from six import string_types
     from cgi import escape
     try:
         oBackend = getBackend()
@@ -196,7 +195,7 @@ def queryHTML(_sKey=None, _sValue=None):
         sHTML = '<TABLE>\n'
         sHTML += '<TR><TH>'+'</TH><TH>'.join(tFields)+'</TH></TR>\n'
         for dStatus in oBackend.query(_sKey, _sValue, sClient):
-            sHTML += '<TR><TD>'+'</TD><TD>'.join(escape(dStatus[k]) if isinstance(dStatus[k], string_types) else str(dStatus[k]) for k in tFields)+'</TD></TR>\n'
+            sHTML += '<TR><TD>'+'</TD><TD>'.join(escape(dStatus[k]) if isinstance(dStatus[k], str) else str(dStatus[k]) for k in tFields)+'</TD></TR>\n'
         sHTML += '</TABLE>\n'
         return Response(sHTML, mimetype='text/html')
     except Exception as e:
@@ -239,13 +238,12 @@ def queryCSV(_sKey=None, _sValue=None, _sSeparator=','):
     if _sValue=='_': _sValue=None
 
     # Query backend
-    from six import string_types
     try:
         oBackend = getBackend()
         tFields = ('mac', 'ip', 'host', 'status', 'change', 'message', 'progress', 'speed', 'heartbeat', 'elapsed')
         sCSV = ''
         for dStatus in oBackend.query(_sKey, _sValue, sClient):
-            sCSV += _sSeparator.join('"%s"' % dStatus[k].replace('"', '""') if isinstance(dStatus[k], string_types) else str(dStatus[k]) for k in tFields)+'\n'
+            sCSV += _sSeparator.join('"%s"' % dStatus[k].replace('"', '""') if isinstance(dStatus[k], str) else str(dStatus[k]) for k in tFields)+'\n'
         return Response(sCSV, mimetype='text/csv')
     except Exception as e:
         abort(400)

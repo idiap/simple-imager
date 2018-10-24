@@ -1,4 +1,3 @@
-# Nothing to do here
 # -*- mode:python; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
 # ex: filetype=python tabstop=4 softtabstop=4 shiftwidth=4 expandtab autoindent smartindent
 ## Simple Imager
@@ -11,5 +10,4 @@
 #------------------------------------------------------------------------------
 
 # Simple Imager
-# (please import dependencies directly  from sub-package)
-
+# (please import dependencies directly from sub-package)

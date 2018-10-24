@@ -15,6 +15,7 @@ import os
 import sqlite3
 import stat
 import subprocess
+import sys
 import threading
 import time
 
@@ -218,11 +219,11 @@ class SI_Monitor_Backend:
                     else:
                         raise Exception('WTF!?! Dude, get your statuses together!')
                     oPopen = subprocess.Popen(lArguments, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    sStdOut, sStdErr = oPopen.communicate()
+                    byStdOut, byStdErr = oPopen.communicate()
                     if oPopen.returncode!=0:
                         self.__oLogger.warning('[%s(%s)] Hook return non-zero exit code; %d' % (_sClient, _sStatus, oPopen.returncode))
-                    if sStdErr:
-                        self.__oLogger.debug('[%s(%s)] %s' % (_sClient, _sStatus, sStdErr.strip('\n')))
+                    if byStdErr:
+                        self.__oLogger.debug('[%s(%s)] %s' % (_sClient, _sStatus, byStdErr.decode(sys.stderr.encoding).strip('\n')))
             except Exception as e:
                 raise RuntimeError('[%s(%s)] Failed to execute hook; %s' % (_sClient, _sStatus, str(e)))
 

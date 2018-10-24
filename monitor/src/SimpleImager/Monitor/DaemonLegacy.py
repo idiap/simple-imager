@@ -119,7 +119,9 @@ class SI_Monitor_DaemonLegacy(SI_Monitor_Daemon):
                 sThreadName = '%s:%d' % tAddress[:2]
                 oThread = threading.Thread(name=sThreadName, target=self.__connection, args=(oConnection, tAddress))
                 oThread.start()
-            except socket.error as (iError, sError):
+            except OSError as e:
+                iError = e.errno
+                sError = e.strerror
                 if iError!=errno.EINTR:
                     self._oLogger.error('Socket error while waiting for client connections; %s' % sError)
                     return errno.EIO
@@ -155,10 +157,15 @@ class SI_Monitor_DaemonLegacy(SI_Monitor_Daemon):
                 byRecv = _oConnection.recv(1024)
                 if not byRecv: break
                 byData += byRecv
-                self._oLogger.debug('[%s] Client data (chunk) received; Chunk=%s' % (sClient, str(byRecv).strip('\n')))
+                try:
+                    self._oLogger.debug('[%s] Client data (chunk) received; Chunk=%s' % (sClient, byRecv.decode('utf-8').strip('\n')))
+                except UnicodeDecodeError as e:
+                    self._oLogger.debug('[%s] Client data (chunk) received; Chunk=<non-UTF8>' % sClient)
                 if len(byData)>4096:
                     raise RuntimeError('Received client data exceed 4096 bytes')
-            except socket.error as (iError, sError):
+            except OSError as e:
+                iError = e.errno
+                sError = e.strerror
                 _oConnection.close()
                 if iError!=errno.EINTR:
                     self._oLogger.error('[%s] Socket error while receiving client data; %s' % (sClient, sError))
@@ -180,15 +187,20 @@ class SI_Monitor_DaemonLegacy(SI_Monitor_Daemon):
         Process client data; returns a non-zero exit code in case of failure.
         """
 
-        sClient = '%s:%d' % _tAddress[:2]
-        self._oLogger.debug('[%s] Processing client data; Data=%s' % (sClient, str(_byData).strip('\n')))
+        try:
+            sClient = '%s:%d' % _tAddress[:2]
+            sData = _byData.decode('utf-8')
+            self._oLogger.debug('[%s] Processing client data; Data=%s' % (sClient, sData.strip('\n')))
+        except UnicodeDecodeError as e:
+            self._oLogger.error('[%s] Invalid data (non-UTF8)' % sClient)
+            return errno.EINVAL
 
         # Data (split 'key1=value1:key2:...' string in {key1: value1, key2: '', ...} dictionary)
         # NOTE: valid keys are: mac, ip, host, cpu, ncpus, kernel, mem, os, tmpfs, time, status, speed, first_timestamp, error, message
         try:
-            dData = {k.strip():v.strip() for k,v in [kv.split('=',1) if kv.find('=')>=0 else [kv,''] for kv in str(_byData).split(':')]}
+            dData = {k.strip():v.strip() for k,v in [kv.split('=',1) if kv.find('=')>=0 else [kv,''] for kv in sData.split(':')]}
         except Exception as e:
-            self._oLogger.error('[%s] Invalid data (key/value pairs); Data=%s' % (sClient, str(_byData).strip('')))
+            self._oLogger.error('[%s] Invalid data (key/value pairs); Data=%s' % (sClient, sData.strip('')))
             return errno.EINVAL
 
         # Validation
@@ -234,7 +246,7 @@ class SI_Monitor_DaemonLegacy(SI_Monitor_Daemon):
                 if 'speed' in dData:
                     iSpeed = int(dData['speed'])
         except Exception as e:
-            self._oLogger.error('[%s] Invalid data (parsing error); Data=%s; %s' % (sClient, str(_byData).strip(''), str(e)))
+            self._oLogger.error('[%s] Invalid data (parsing error); Data=%s; %s' % (sClient, sData.strip(''), str(e)))
             return errno.EINVAL
         self._oLogger.debug('[%s] Data parsed; MAC=%s, IP=%s, Host=%s, Status=%s, Message=%s, Progress=%d, Speed=%d' % (sClient, sMAC, sIP, sHost, sStatus, sMessage, iProgress, iSpeed))
 
