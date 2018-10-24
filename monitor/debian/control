@@ -3,28 +3,20 @@ Section: admin
 Priority: optional
 Maintainer: Cédric Dufour <cedric.dufour@idiap.ch>
 Homepage: https://github.com/idiap/simple-imager
-Standards-Version: 3.9.8
-Build-Depends: python (>= 2.6), python (<< 3), debhelper (>= 9), dh-systemd, dh-python, bash, help2man
-XS-Python-Version: 2.6, 2.7
+Build-Depends: python3 (>= 3.4), debhelper (>= 10), dh-systemd, dh-python, bash, help2man
+X-Python3-Version: >= 3.4
+Standards-Version: 4.1.3
 
 Package: simple-imager-monitor
 Architecture: all
-Depends: bash, simple-imager-monitor-python2.7 | simple-imager-monitor-python2.6
+Depends: ${misc:Depends}, bash, simple-imager-monitor-python3
 Description: Simple Imager - Monitoring server utilities and service
 
-Package: simple-imager-monitor-python2
+Package: simple-imager-monitor-python3
 Architecture: all
-Depends: python (>= 2.6), python (<< 3), python-argparse, python-daemon, python-flask, python-six
-Description: Simple Imager - Monitoring server utilities and service - Python 2.x library
-
-Package: simple-imager-monitor-python2.6
-Architecture: all
-Depends: python (>= 2.6), python (<< 2.7), simple-imager-monitor-python2
-Description: Simple Imager - Monitoring server utilities and service - Python 2.6 packaging
-
-Package: simple-imager-monitor-python2.7
-Architecture: all
-Depends: python (>= 2.7), python (<< 2.8), simple-imager-monitor-python2
-Description: Simple Imager - Monitoring server utilities and service - Python 2.7 packaging
-
+Depends: ${misc:Depends}, python3 (>= 3.4), python3-daemon, python3-flask
+Conflicts: simple-imager-monitor-python2
+Breaks: simple-imager-monitor-python2
+Replaces: simple-imager-monitor-python2
+Description: Simple Imager - Monitoring server utilities and service - Python 3.x library
 

@@ -5,6 +5,22 @@ semantic.cache
 
 # Ignore Python byte-compiled files
 *.pyc
+*/__pycache__/
+
+# Ignore Python packaging directory
+*/build/
+
+# Ignore Debian packaging resources
+*/.pybuild/
+*/debian/debhelper-build-stamp
+*/debian/files
+*/debian/*.debhelper
+*/debian/*.debhelper.log
+*/debian/*.substvars
+*/debian/tmp
+*.deb
+*.buildinfo
+*.changes
 
 # Ignore build files and resources
 target/download*

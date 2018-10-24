@@ -1,3 +1,9 @@
+simple-imager-monitor (2018.10.24a) UNRELEASED; urgency=low
+
+  * REFACTOR: Python 2-to-3
+
+ -- Cédric Dufour <cedric.dufour@ced-network.net>  Wed, 24 Oct 2018 11:28:04 +0200
+
 simple-imager-monitor (2017.12.04a) UNRELEASED; urgency=low
 
   * Debian: added 'python-six' to dependencies

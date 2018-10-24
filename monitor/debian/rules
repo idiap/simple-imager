@@ -4,23 +4,19 @@
 export PACKAGE := $(shell dpkg-parsechangelog | egrep '^Source:' | cut -f 2 -d ' ')
 export VERSION := $(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ')
 
+# Let's keep our source tree clean
+export PYTHONDONTWRITEBYTECODE=1
+
 # Required for 'help2man'
 export PYTHONPATH:=.:${PYTHONPATH}
 export PATH:=.:${PATH}
 
 %:
-	dh $@ --with systemd --with python2 --buildsystem=pybuild
-
-override_dh_pysupport:
-	# NOTE: we implement our own 'python-support' in order to package Python 2.6
-	#       even on platforms where it is deprecated
+	dh $@ --with python3,systemd --buildsystem=pybuild
 
 override_dh_install:
-	# Support given Python2 versions
-	debian/pyshared debian/tmp 2.6 2.7
-
 	# Fix global variables
-	sed -i "s|%{VERSION}|$(VERSION)|g" debian/tmp/usr/share/pyshared/SimpleImager/Monitor/*.py
+	sed -i "s|%{VERSION}|$(VERSION)|g" debian/tmp/usr/lib/*/dist-packages/SimpleImager/Monitor/*.py
 
 	# Create man pages
 	mkdir -p debian/tmp/usr/share/man/man1
@@ -42,11 +38,21 @@ override_dh_installdocs:
 	mkdir -p debian/docs.d
 	cp ../README debian/docs.d/README.SimpleImager
 	cp ../CREDITS.* debian/docs.d/.
-	dh_installdocs
+	dh_installdocs --link-doc=simple-imager-monitor
 
 override_dh_clean:
 	dh_clean
 	rm -rf debian/docs.d
 	rm -rf MANIFEST build dist
 	find src -name '*.pyc' -delete
+	find src -type d -name '__pycache__' -exec rmdir {} \;
+
+debian-source:
+	dpkg-buildpackage -I'.git*' -I'*.pyc' -us -uc -S -d
+
+debian-build:
+	dpkg-buildpackage -us -uc -b
+
+debian-clean:
+	dpkg-buildpackage -T clean
 

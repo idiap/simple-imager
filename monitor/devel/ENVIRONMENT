@@ -1,0 +1,2 @@
+export PYTHONDONTWRITEBYTECODE=1
+export PYTHONPATH=./src:${PYTHONPATH//*.\/src:/}
