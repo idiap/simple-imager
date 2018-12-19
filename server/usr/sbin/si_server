@@ -50,13 +50,13 @@ ENVIRONMENT:
     TCP port to have the daemon listen on (rsyncd.conf: port)
 
   SI_SERVER_BTTRACKER_BIND=*
-    Specific IP address to bind the tracker to (bttrack: --bind).
+    Specific IP address to bind the tracker to (qbittorrent: Connection\\InterfaceAddress; bttrack: --bind).
 
   SI_SERVER_BTTRACKER_PORT=6969
-    TCP port to have the tracker listen on (bttrack: --port).
+    TCP port to have the tracker listen on (qbittorrent: Advanced\\trackerPort; bttrack: --port).
 
   SI_SERVER_BTSEEDER_BIND=*
-    Specific IP address to bind the seeder to (btlaunchmany: --bind).
+    Specific IP address to bind the seeder to (qbittorrent: n/a; btlaunchmany: --bind).
 EOF
 
 # Arguments
@@ -115,13 +115,15 @@ MY_REPOSITORY_TARBALLS="${MY_REPOSITORY_TARBALLS%%/}"
 MY_REPOSITORY_TORRENTS="${MY_REPOSITORY_TORRENTS%%/}"
 MY_REPOSITORY_SCRIPTS="${MY_REPOSITORY_SCRIPTS%%/}"
 # ... runtime
+MY_RUNTIME_HOME="$(getent passwd si_server | cut -d: -f6)"
 MY_RUNTIME_RSYNCD_CONF='/var/run/si_server.rsyncd.conf'
 MY_RUNTIME_RSYNCD_PID='/var/run/si_server.rsyncd.pid'
 MY_RUNTIME_RSYNCD_LOG='/var/log/simple-imager/si_server.rsyncd.log'
 MY_RUNTIME_BTTRACKER_DFILE='/var/tmp/si_server.bttracker.dfile'
 MY_RUNTIME_BTTRACKER_PID='/var/run/si_server.bttracker.pid'
-#MY_RUNTIME_BTTRACKER_LOG='/var/log/simple-imager/si_server.bttracker.log'
+#(Very Noisy)MY_RUNTIME_BTTRACKER_LOG='/var/log/simple-imager/si_server.bttracker.log'
 MY_RUNTIME_BTSEEDER_PID='/var/run/si_server.btseeder.pid'
+#(Very Noisy)MY_RUNTIME_BTSEEDER_LOG='/var/log/simple-imager/si_server.btseeder.log'
 
 
 ## Actions (pre-handling)
@@ -169,7 +171,12 @@ case "${MY_ACTION}" in
     [ -n "${pid}" -a ! -e "/proc/${pid}" ] && pid= && rm -f "${MY_RUNTIME_RSYNCD_PID}"
     [ -n "${pid}" ] && echo "INFO: RSync daemon is running (${pid})" || echo 'INFO: RSync daemon is not running'
     # BitTorrent
-    if [ -n "$(which bttrack)" -a -n "$(which btlaunchmany)" ]; then
+    if [ -n "$(which qbittorrent-nox)" ]; then
+      # ... tracker/seeder
+      [ -e "${MY_RUNTIME_BTTRACKER_PID}" ] && pid=$(head -n 1 "${MY_RUNTIME_BTTRACKER_PID}") || pid=
+      [ -n "${pid}" -a ! -e "/proc/${pid}" ] && pid= && rm -f "${MY_RUNTIME_BTTRACKER_PID}"
+      [ -n "${pid}" ] && echo "INFO: BitTorrent tracker/seeder is running (${pid})" || echo 'INFO: BitTorrent tracker/seeder is not running'
+    elif [ -n "$(which bttrack)" -a -n "$(which btlaunchmany)" ]; then
       # ... tracker
       [ -e "${MY_RUNTIME_BTTRACKER_PID}" ] && pid=$(head -n 1 "${MY_RUNTIME_BTTRACKER_PID}") || pid=
       [ -n "${pid}" -a ! -e "/proc/${pid}" ] && pid= && rm -f "${MY_RUNTIME_BTTRACKER_PID}"
@@ -198,10 +205,11 @@ esac
 [ ! -d "${MY_REPOSITORY_TARBALLS}" ] && echo "ERROR: Missing/invalid tarballs repository directory (${MY_REPOSITORY_TARBALLS})" >&2 && exit 1
 [ ! -d "${MY_REPOSITORY_TORRENTS}" ] && echo "ERROR: Missing/invalid torrents repository directory (${MY_REPOSITORY_TORRENTS})" >&2 && exit 1
 [ ! -d "${MY_REPOSITORY_SCRIPTS}" ] && echo "ERROR: Missing/invalid scripts repository directory (${MY_REPOSITORY_SCRIPTS})" >&2 && exit 1
+[ -z "${MY_RUNTIME_HOME}" ] && echo "ERROR: Undefined runtime directory ('si_server' account)" >&2 && exit 1
 [ -z "$(which nodeattr)" ] && echo "ERROR: Missing 'nodeattr' (genders) executable" >&2 && exit 1
 [ -z "$(which rsync)" ] && echo "ERROR: Missing 'rsync' executable" >&2 && exit 1
-[ -z "$(which bttrack)" ] && echo "WARNING: Missing 'bttrack' (bittorrent) executable" >&2
-[ -z "$(which btlaunchmany)" ] && echo "WARNING: Missing 'btlaunchmany' (bittorrent) executable" >&2
+[ -z "$(which qbittorrent-nox)" -a -z "$(which bttrack)" ] && echo "WARNING: Missing 'qbittorrent-nox' or 'bttrack' (bittorrent) executable" >&2
+[ -z "$(which qbittorrent-nox)" -a -z "$(which btlaunchmany)" ] && echo "WARNING: Missing 'qbittorrent-nox' or 'btlaunchmany' (bittorrent) executable" >&2
 
 
 ## Update targets installation configuration file
@@ -256,18 +264,27 @@ ps="$(netstat -Wtlnp | awk "{if(\$4~\":${MY_SERVER_RSYNCD_PORT}\$\") print \$7}"
 [ -n "${ps}" ] && echo "ERROR: Cannot start RSync daemon; a process is already listening on port ${MY_SERVER_RSYNCD_PORT} (${ps})" >&2 && exit 1
 
 # BitTorrent
-if [ -n "$(which bttrack)" -a -n "$(which btlaunchmany)" ]; then
+if [ -n "$(which qbittorrent-nox)" ]; then
+
+  # ... tracker/seeder
+  [ -e "${MY_RUNTIME_BTTRACKER_PID}" ] && pid=$(head -n 1 "${MY_RUNTIME_BTTRACKER_PID}") || pid=
+  [ -n "${pid}" -a -e "/proc/${pid}" ] && echo "ERROR: BitTorrent tracker/seeder (qbittorrent-nox) is already running (${pid})" >&2 && exit 1
+  rm -f "${MY_RUNTIME_BTTRACKER_PID}"
+  ps="$(netstat -Wtlnp | awk "{if(\$4~\":${MY_SERVER_BTTRACKER_PORT}\$\") print \$7}" | sort -u | tr '\n' ',')"; ps="${ps%%,}"
+  [ -n "${ps}" ] && echo "ERROR: Cannot start BitTorrent tracker; a process is already listening on port ${MY_SERVER_BTTRACKER_PORT} (${ps})" >&2 && exit 1
+
+elif [ -n "$(which bttrack)" -a -n "$(which btlaunchmany)" ]; then
 
   # ... tracker
   [ -e "${MY_RUNTIME_BTTRACKER_PID}" ] && pid=$(head -n 1 "${MY_RUNTIME_BTTRACKER_PID}") || pid=
-  [ -n "${pid}" -a -e "/proc/${pid}" ] && echo "ERROR: BitTorrent tracker is already running (${pid})" >&2 && exit 1
+  [ -n "${pid}" -a -e "/proc/${pid}" ] && echo "ERROR: BitTorrent tracker (bttrack) is already running (${pid})" >&2 && exit 1
   rm -f "${MY_RUNTIME_BTTRACKER_PID}"
   ps="$(netstat -Wtlnp | awk "{if(\$4~\":${MY_SERVER_BTTRACKER_PORT}\$\") print \$7}" | sort -u | tr '\n' ',')"; ps="${ps%%,}"
   [ -n "${ps}" ] && echo "ERROR: Cannot start BitTorrent tracker; a process is already listening on port ${MY_SERVER_BTTRACKER_PORT} (${ps})" >&2 && exit 1
 
   # ... seeder
   [ -e "${MY_RUNTIME_BTSEEDER_PID}" ] && pid=$(head -n 1 "${MY_RUNTIME_BTSEEDER_PID}") || pid=
-  [ -n "${pid}" -a -e "/proc/${pid}" ] && echo "ERROR: BitTorrent seeder is already running (${pid})" >&2 && exit 1
+  [ -n "${pid}" -a -e "/proc/${pid}" ] && echo "ERROR: BitTorrent seeder (btlaunchmany) is already running (${pid})" >&2 && exit 1
   rm -f "${MY_RUNTIME_BTSEEDER_PID}"
 
 fi
@@ -280,8 +297,8 @@ cat << EOF > "${MY_RUNTIME_RSYNCD_CONF}"
 ## Temporary RSync daemon configuration (${0##*/}:$$)
 
 # System settings
-uid = root
-gid = root
+uid = si_server
+gid = si_server
 pid file = ${MY_RUNTIME_RSYNCD_PID}
 log file = ${MY_RUNTIME_RSYNCD_LOG}
 
@@ -331,32 +348,122 @@ echo "OK ($(head -n 1 "${MY_RUNTIME_RSYNCD_PID}"))"
 
 
 ## BitTorrent
-[ -z "$(which bttrack)" -o -z "$(which btlaunchmany)" ] && echo 'WARNING: Missing BitTorrent dependencies; protocol is disabled' >&2 && exit 0
+if [ -n "$(which qbittorrent-nox)" ]; then
 
-# Tracker
-echo -n 'INFO: Starting BitTorrent tracker... '
-bttrack \
-  ${MY_SERVER_BTTRACKER_BIND:+--bind ${MY_SERVER_BTTRACKER_BIND}} --port ${MY_SERVER_BTTRACKER_PORT} \
-  --allowed_dir "${MY_REPOSITORY_TORRENTS}/" \
-  --dfile "${MY_RUNTIME_BTTRACKER_DFILE}" \
-  ${MY_RUNTIME_BTTRACKER_LOG:+--logfile "${MY_RUNTIME_BTTRACKER_LOG}"} \
-  0</dev/null 1>/dev/null 2>&1 &
-[ $? -ne 0 ] && echo 'ERROR' && exit 1
-echo "$!" > "${MY_RUNTIME_BTTRACKER_PID}"
-echo "OK ($(head -n 1 "${MY_RUNTIME_BTTRACKER_PID}"))"
+  # Configuration
+  for subdir in .config .local/share/data .cache; do
+    rm -rf "${MY_RUNTIME_HOME}/${subdir}/qBittorrent"
+    mkdir -p "${MY_RUNTIME_HOME}/${subdir}/qBittorrent"
+    chown si_server "${MY_RUNTIME_HOME}/${subdir}/qBittorrent"
+  done
+  cat > "${MY_RUNTIME_HOME}/.config/qBittorrent/qBittorrent.conf" << EOF
+## Temporary qBittorent daemon configuration (${0##*/}:$$)
 
-# Seeder
-echo -n 'INFO: Starting BitTorrent seeder... '
-btlaunchmany \
-  "${MY_REPOSITORY_TORRENTS}/" \
-  ${MY_SERVER_BTSEEDER_BIND:+--bind ${MY_SERVER_BTSEEDER_BIND}} \
-  --max_uploads 10 --max_upload_rate 0 \
-  --keepalive_interval 5 --rerequest_interval 5 \
-  --display_interval 3600 \
-  0</dev/null 1>/dev/null 2>&1 &
-[ $? -ne 0 ] && echo 'ERROR' && exit 1
-echo "$!" > "${MY_RUNTIME_BTSEEDER_PID}"
-echo "OK ($(head -n 1 "${MY_RUNTIME_BTSEEDER_PID}"))"
+[AutoRun]
+enabled=false
+
+[LegalNotice]
+Accepted=true
+
+[Preferences]
+Advanced\\AnonymousMode=false
+Advanced\\IncludeOverhead=false
+Advanced\\trackerEnabled=true
+Advanced\\trackerPort=${MY_SERVER_BTTRACKER_PORT}
+Bittorrent\\AddTrackers=false
+Bittorrent\\DHT=false
+Bittorrent\\Encryption=2
+Bittorrent\\LSD=false
+Bittorrent\\MaxConnecs=-1
+Bittorrent\\MaxConnecsPerTorrent=-1
+Bittorrent\\MaxRatio=-1
+Bittorrent\\MaxUploads=-1
+Bittorrent\\MaxUploadsPerTorrent=-1
+Bittorrent\\PeX=false
+Bittorrent\\TrackersList=
+Bittorrent\\uTP=false
+${MY_SERVER_BTTRACKER_BIND:-#N/A:}Connection\\InterfaceAddress=${MY_SERVER_BTTRACKER_BIND}
+Connection\\PortRangeMin=6881
+Connection\\GlobalDLLimit=-1
+Connection\\GlobalDLLimitAlt=-1
+Connection\\GlobalUPLimit=-1
+Connection\\GlobalUPLimitAlt=-1
+Connection\\ProxyType=-1
+Connection\\UPnP=false
+Connection\\ResolvePeerCountries=false
+Connection\\ResolvePeerHostNames=true
+Downloads\\SavePath=${MY_REPOSITORY_TORRENTS}/
+Downloads\\TempPathEnabled=false
+Downloads\\PreAllocation=false
+Downloads\\TorrentExportDir=
+Downloads\\FinishedTorrentExportDir=
+Downloads\\UseIncompleteExtension=false
+Downloads\\ScanDirsV2=@Variant(\\0\\0\\0\\x1c\\0\\0\\0\\0)
+DynDNS\\Enabled=false
+General\\Locale=en
+General\\UseRandomPort=false
+IPFilter\\Enabled=false
+MailNotification\\enabled=false
+Queueing\\QueueingEnabled=false
+Scheduler\\Enabled=false
+WebUI\\Enabled=true
+WebUI\\HTTPS\\Enabled=false
+WebUI\\Address=127.0.0.1
+WebUI\\Port=9080
+WebUI\\UseUPnP=false
+WebUI\\Username=si_server
+WebUI\\Password_ha1=@ByteArray($(dd if=/dev/urandom bs=20 count=1 2>/dev/null | sha1sum | cut -d' ' -f1))
+WebUI\\LocalHostAuth=false
+WebUI\\ClickjackingProtection=true
+WebUI\\CSRFProtection=true
+EOF
+
+  # Tracker/seeder
+  echo -n 'INFO: Starting BitTorrent tracker/seeder (qbittorrent-nox)... '
+  su -s /bin/sh -c \
+    "qbittorrent-nox '${MY_REPOSITORY_TORRENTS}'/*.torrent" \
+    si_server \
+    0</dev/null 1>"${MY_RUNTIME_BTTRACKER_LOG:-/dev/null}" 2>&1 &
+  [ $? -ne 0 ] && echo 'ERROR' && exit 1
+  echo "$!" > "${MY_RUNTIME_BTTRACKER_PID}"
+  echo "OK ($(head -n 1 "${MY_RUNTIME_BTTRACKER_PID}"))"
+
+elif [ -n "$(which bttrack)" -a -n "$(which btlaunchmany)" ]; then
+
+  # Tracker
+  echo -n 'INFO: Starting BitTorrent tracker (bttrack)... '
+  rm -f "${MY_RUNTIME_BTTRACKER_DFILE}"
+  su -s /bin/sh -c \
+    "bttrack \
+      ${MY_SERVER_BTTRACKER_BIND:+--bind ${MY_SERVER_BTTRACKER_BIND}} --port ${MY_SERVER_BTTRACKER_PORT} \
+      --allowed_dir '${MY_REPOSITORY_TORRENTS}/' \
+      --dfile '${MY_RUNTIME_BTTRACKER_DFILE}'" \
+    si_server \
+    0</dev/null 1>"${MY_RUNTIME_BTTRACKER_LOG:-/dev/null}" 2>&1 &
+  [ $? -ne 0 ] && echo 'ERROR' && exit 1
+  echo "$!" > "${MY_RUNTIME_BTTRACKER_PID}"
+  echo "OK ($(head -n 1 "${MY_RUNTIME_BTTRACKER_PID}"))"
+
+  # Seeder
+  echo -n 'INFO: Starting BitTorrent seeder (btlaunchmany)... '
+  su -s /bin/sh -c \
+    "btlaunchmany \
+      "${MY_REPOSITORY_TORRENTS}/" \
+      ${MY_SERVER_BTSEEDER_BIND:+--bind ${MY_SERVER_BTSEEDER_BIND}} \
+      --max_uploads 10 --max_upload_rate 0 \
+      --keepalive_interval 5 --rerequest_interval 5 \
+      --display_interval 3600" \
+    si_server \
+    0</dev/null 1>"${MY_RUNTIME_BTSEEDER_LOG:-/dev/null}" 2>&1 &
+  [ $? -ne 0 ] && echo 'ERROR' && exit 1
+  echo "$!" > "${MY_RUNTIME_BTSEEDER_PID}"
+  echo "OK ($(head -n 1 "${MY_RUNTIME_BTSEEDER_PID}"))"
+
+else
+
+  echo 'WARNING: Missing BitTorrent dependencies; protocol is disabled' >&2
+
+fi
 
 # Done
 exit 0

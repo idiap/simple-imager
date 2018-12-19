@@ -90,7 +90,7 @@ case "${MY_PACK_COMPRESSION}" in
   *) echo "ERROR: Invalid compression method (${MY_PACK_COMPRESSION})" >&2 && exit 1
 esac
 [ -z "$(which tar)" ] && echo "ERROR: Missing 'tar' executable" >&2 && exit 1
-[ -z "$(which btmakemetafile)" ] && echo "ERROR: Missing 'btmakemetafile' (bittorrent) executable" >&2 && exit 1
+[ -z "$(which ctorrent)" -a -z "$(which btmakemetafile)" ] && echo "ERROR: Missing 'ctorrent' or 'btmakemetafile' (bittorrent) executable" >&2 && exit 1
 
 
 ## List images/overrides
@@ -163,10 +163,17 @@ function __torrent {
   local torrent="${2}"
   if [ ! -e "${torrent}" ]; then
     echo "INFO: Creating torrent '${torrent}'..."
-    btmakemetafile \
-      "${tarball}" \
-      "${MY_SERVER_BTTRACKER_URL}" \
-      --target "${torrent}"
+    if [ -n "$(which ctorrent)" ]; then
+      ctorrent -t \
+        -u "${MY_SERVER_BTTRACKER_URL}" \
+        -s "${torrent}" \
+        "${tarball}"
+    else
+      btmakemetafile \
+        "${tarball}" \
+        "${MY_SERVER_BTTRACKER_URL}" \
+        --target "${torrent}"
+    fi
     ln \
       --symbolic --force \
       "${tarball}" "${torrent%/*}/${tarball##*/}"
