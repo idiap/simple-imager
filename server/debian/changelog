@@ -1,3 +1,11 @@
+simple-imager-server (2019.01.04a) UNRELEASED; urgency=low
+
+  * [server] Debian: add ad-hoc system account (si_server) for server daemons
+  * [server] NEW: Use 'ctorrent' and 'qbittorrent-nox' as alternatives
+                  to (Python 2 only) 'bittorrent' utilities
+
+ -- Cédric Dufour <cedric.dufour@ced-network.net>  Fri, 04 Jan 2019 09:50:19 +0100
+
 simple-imager-server (2017.12.01a) UNRELEASED; urgency=low
 
   * FIX: Add dynamic (DHCP) NTP configuration files to 'si_pull.exclude'
