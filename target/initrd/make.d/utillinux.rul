@@ -7,13 +7,13 @@
 
 
 ## Variables
-UTILLINUX_INFO		:= https://www.kernel.org/pub/linux/utils/util-linux/
-UTILLINUX_VERSION	:= 2.31
-UTILLINUX_VERSHORT	:= $(shell echo $(UTILLINUX_VERSION) | sed 's/^\([^.]*\.[^.]*\)\..*$$/\1/')
-UTILLINUX_TARBALL	:= util-linux-$(UTILLINUX_VERSION).tar.xz
-UTILLINUX_URL		:= https://www.kernel.org/pub/linux/utils/util-linux/v$(UTILLINUX_VERSHORT)/$(UTILLINUX_TARBALL)
-UTILLINUX_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(UTILLINUX_TARBALL)
-UTILLINUX_DIR		:= $(INITRD_SOURCE_DIR)/util-linux-$(UTILLINUX_VERSION)
+UTILLINUX_INFO      := https://www.kernel.org/pub/linux/utils/util-linux/
+UTILLINUX_VERSION   := 2.33
+UTILLINUX_VERSHORT  := $(shell echo $(UTILLINUX_VERSION) | sed 's/^\([^.]*\.[^.]*\)\..*$$/\1/')
+UTILLINUX_TARBALL   := util-linux-$(UTILLINUX_VERSION).tar.xz
+UTILLINUX_URL       := https://www.kernel.org/pub/linux/utils/util-linux/v$(UTILLINUX_VERSHORT)/$(UTILLINUX_TARBALL)
+UTILLINUX_DOWNLOAD  := $(DOWNLOAD_DIR)/$(UTILLINUX_TARBALL)
+UTILLINUX_DIR       := $(INITRD_SOURCE_DIR)/util-linux-$(UTILLINUX_VERSION)
 
 
 ## Targets

@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Cédric Dufour <cedric.dufour@idiap.ch>
 Homepage: https://github.com/idiap/simple-imager
 Standards-Version: 3.9.8
-Build-Depends: debhelper (>= 9), bash, wget, build-essential, automake, bc, bison, ed, flex, git, libtool, texinfo, pkg-config, cpio, pigz, pbzip2, pixz
+Build-Depends: debhelper (>= 9), bash, wget, build-essential, automake, bc, bison, flex, git, gperf, libtool, pkg-config, cpio, pigz, pbzip2, pixz
 
 Package: simple-imager-target-boot
 Architecture: all

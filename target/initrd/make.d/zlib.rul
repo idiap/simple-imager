@@ -7,12 +7,12 @@
 
 
 ## Variables
-ZLIB_INFO			:= http://zlib.net/
-ZLIB_VERSION		:= 1.2.11
-ZLIB_TARBALL		:= zlib-$(ZLIB_VERSION).tar.xz
-ZLIB_URL			:= http://zlib.net/$(ZLIB_TARBALL)
-ZLIB_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(ZLIB_TARBALL)
-ZLIB_DIR			:= $(INITRD_SOURCE_DIR)/zlib-$(ZLIB_VERSION)
+ZLIB_INFO           := https://zlib.net/
+ZLIB_VERSION        := 1.2.11
+ZLIB_TARBALL        := zlib-$(ZLIB_VERSION).tar.xz
+ZLIB_URL            := https://zlib.net/$(ZLIB_TARBALL)
+ZLIB_DOWNLOAD       := $(DOWNLOAD_DIR)/$(ZLIB_TARBALL)
+ZLIB_DIR            := $(INITRD_SOURCE_DIR)/zlib-$(ZLIB_VERSION)
 
 
 ## Targets
@@ -36,6 +36,9 @@ zlib_clean: $(ZLIB_DIR).clean
 
 ## Recipes
 # zlib's configure makes static or shared, but not both; we must differientiate each case
+$(ZLIB_DIR).configure:
+	touch $@
+
 $(ZLIB_DIR).configure-static: $(ZLIB_DIR).unpack
 	cd $(ZLIB_DIR) \
 	&& $(MAKE) distclean \

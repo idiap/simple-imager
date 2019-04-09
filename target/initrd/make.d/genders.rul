@@ -7,13 +7,13 @@
 
 
 ## Variables
-GENDERS_INFO		:= https://www.gnu.org/software/genders/
-GENDERS_VERSION		:= 1-22-1
-GENDERS_VERSHORT	:= $(shell echo $(GENDERS_VERSION) | sed 's/^\([^-]*-[^-]*\)-.*$$/\1/;s/-/./g')
-GENDERS_TARBALL		:= genders-$(GENDERS_VERSHORT).tar.gz
-GENDERS_URL			:= https://github.com/chaos/genders/releases/download/genders-$(GENDERS_VERSION)/$(GENDERS_TARBALL)
-GENDERS_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(GENDERS_TARBALL)
-GENDERS_DIR			:= $(INITRD_SOURCE_DIR)/genders-$(GENDERS_VERSHORT)
+GENDERS_INFO        := https://github.com/chaos/genders
+GENDERS_VERSION     := 1-22-1
+GENDERS_VERSHORT    := $(shell echo $(GENDERS_VERSION) | sed 's/^\([^-]*-[^-]*\)-.*$$/\1/;s/-/./g')
+GENDERS_TARBALL     := genders-$(GENDERS_VERSHORT).tar.gz
+GENDERS_URL         := https://github.com/chaos/genders/releases/download/genders-$(GENDERS_VERSION)/$(GENDERS_TARBALL)
+GENDERS_DOWNLOAD    := $(DOWNLOAD_DIR)/$(GENDERS_TARBALL)
+GENDERS_DIR         := $(INITRD_SOURCE_DIR)/genders-$(GENDERS_VERSHORT)
 
 
 ## Targets

@@ -7,18 +7,21 @@
 
 
 ## Variables
-BZIP2_INFO			:= http://www.bzip.org/
-BZIP2_VERSION		:= 1.0.6
-BZIP2_TARBALL		:= bzip2-$(BZIP2_VERSION).tar.gz
-BZIP2_URL			:= http://www.bzip.org/${BZIP2_VERSION}/$(BZIP2_TARBALL)
-BZIP2_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(BZIP2_TARBALL)
-BZIP2_DIR			:= $(INITRD_SOURCE_DIR)/bzip2-$(BZIP2_VERSION)
+BZIP2_INFO          := https://sourceware.org/bzip2/
+BZIP2_VERSION       := 1.0.6
+BZIP2_TARBALL       := bzip2-$(BZIP2_VERSION).tar.gz
+BZIP2_URL           := https://sourceware.org/pub/bzip2/$(BZIP2_TARBALL)
+BZIP2_DOWNLOAD      := $(DOWNLOAD_DIR)/$(BZIP2_TARBALL)
+BZIP2_DIR           := $(INITRD_SOURCE_DIR)/bzip2-$(BZIP2_VERSION)
 
 
 ## Targets
 .PHONY: bzip2_download
 bzip2_download: $(BZIP2_DOWNLOAD)
 INITRD_DOWNLOAD_ALL += $(BZIP2_DOWNLOAD)
+
+.PHONY: bzip2_configure
+bzip2_configure: $(BZIP2_DIR).configure
 
 .PHONY: bzip2_build
 bzip2_build: $(BZIP2_DIR).build
@@ -32,7 +35,10 @@ bzip2_clean: $(BZIP2_DIR).clean
 
 
 ## Recipes
-$(BZIP2_DIR).build: $(BZIP2_DIR).unpack
+$(BZIP2_DIR).configure: $(BZIP2_DIR).unpack
+	touch $@
+
+$(BZIP2_DIR).build: $(BZIP2_DIR).configure
 	cd $(BZIP2_DIR) \
 	&& $(MAKE) -f Makefile-libbz2_so -j $(NCPUS) \
 	&& $(MAKE) bzip2 -j $(NCPUS)

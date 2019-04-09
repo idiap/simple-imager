@@ -7,13 +7,13 @@
 
 
 ## Variables
-NCURSES_INFO		:= https://www.gnu.org/software/ncurses/
-NCURSES_VERSION		:= 6.0
-NCURSES_TARBALL		:= ncurses-$(NCURSES_VERSION).tar.gz
-NCURSES_URL			:= http://ftp.gnu.org/gnu/ncurses/$(NCURSES_TARBALL)
-NCURSES_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(NCURSES_TARBALL)
-NCURSES_DIR			:= $(INITRD_SOURCE_DIR)/ncurses-$(NCURSES_VERSION)
-NCURSES_PATCHES 	:= $(shell find $(INITRD_PATCH_DIR) -type f -name "ncurses.*.patch" -exec basename {} \; | sort)
+NCURSES_INFO        := https://www.gnu.org/software/ncurses/
+NCURSES_VERSION     := 6.1
+NCURSES_TARBALL     := ncurses-$(NCURSES_VERSION).tar.gz
+NCURSES_URL         := https://ftp.gnu.org/gnu/ncurses/$(NCURSES_TARBALL)
+NCURSES_DOWNLOAD    := $(DOWNLOAD_DIR)/$(NCURSES_TARBALL)
+NCURSES_DIR         := $(INITRD_SOURCE_DIR)/ncurses-$(NCURSES_VERSION)
+NCURSES_PATCHES     := $(shell find $(INITRD_PATCH_DIR) -type f -name "ncurses.*.patch" -exec basename {} \; | sort)
 
 
 ## Targets
@@ -47,7 +47,6 @@ $(NCURSES_DIR).configure: $(NCURSES_DIR).patch
 	     --without-gpm \
 	     --without-manpages \
 	     --without-profile \
-	     --without-progs \
 	     --without-tests \
 	     --with-pkg-config-libdir=/usr/lib/pkgconfig \
 	     --with-shared \

@@ -7,19 +7,23 @@
 
 
 ## Variables
-PBZIP2_INFO			:= http://compression.ca/pbzip2/
-PBZIP2_VERSION		:= 1.1.13
-PBZIP2_VERSHORT		:= $(shell echo $(PBZIP2_VERSION) | sed 's/^\([^.]*\.[^.]*\)\..*$$/\1/')
-PBZIP2_TARBALL		:= pbzip2-$(PBZIP2_VERSION).tar.gz
-PBZIP2_URL			:= https://launchpad.net/pbzip2/$(PBZIP2_VERSHORT)/$(PBZIP2_VERSION)/+download/$(PBZIP2_TARBALL)
-PBZIP2_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(PBZIP2_TARBALL)
-PBZIP2_DIR			:= $(INITRD_SOURCE_DIR)/pbzip2-$(PBZIP2_VERSION)
+#PBZIP2_INFO        := http://compression.ca/pbzip2/  # Dead ?!?
+PBZIP2_INFO         := https://launchpad.net/pbzip2/
+PBZIP2_VERSION      := 1.1.13
+PBZIP2_VERSHORT     := $(shell echo $(PBZIP2_VERSION) | sed 's/^\([^.]*\.[^.]*\)\..*$$/\1/')
+PBZIP2_TARBALL      := pbzip2-$(PBZIP2_VERSION).tar.gz
+PBZIP2_URL          := https://launchpad.net/pbzip2/$(PBZIP2_VERSHORT)/$(PBZIP2_VERSION)/+download/$(PBZIP2_TARBALL)
+PBZIP2_DOWNLOAD     := $(DOWNLOAD_DIR)/$(PBZIP2_TARBALL)
+PBZIP2_DIR          := $(INITRD_SOURCE_DIR)/pbzip2-$(PBZIP2_VERSION)
 
 
 ## Targets
 .PHONY: pbzip2_download
 pbzip2_download: $(PBZIP2_DOWNLOAD)
 INITRD_DOWNLOAD_ALL += $(PBZIP2_DOWNLOAD)
+
+.PHONY: pbzip2_configure
+pbzip2_configure: $(PBZIP2_DIR).configure
 
 .PHONY: pbzip2_build
 pbzip2_build: $(PBZIP2_DIR).build
@@ -33,9 +37,12 @@ pbzip2_clean: $(PBZIP2_DIR).clean
 
 
 ## Recipes (deps: bzip2)
-$(PBZIP2_DIR).build: $(PBZIP2_DIR).unpack
+$(PBZIP2_DIR).configure: $(PBZIP2_DIR).unpack
+	touch $@
+
+$(PBZIP2_DIR).build: $(PBZIP2_DIR).configure
 	cd $(PBZIP2_DIR) \
-	&& sed -i "s|CXXFLAGS\s*=\(.*\)$$|CXXFLAGS=-I$(INITRD_IMAGE_DIR)/usr/include|g;s|LDFLAGS\s*=\(.*\)$$|LDFLAGS=-L$(INITRD_IMAGE_DIR)/usr/lib \1|g" Makefile \
+	&& sed -i "s|CXXFLAGS\s*=\(.*\)$$|CXXFLAGS=-I$(INITRD_IMAGE_DIR)/usr/include \1|g;s|LDFLAGS\s*=\(.*\)$$|LDFLAGS=-L$(INITRD_IMAGE_DIR)/usr/lib \1|g" Makefile \
 	&& $(MAKE) -j $(NCPUS)
 	touch $@
 

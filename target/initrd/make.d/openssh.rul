@@ -7,14 +7,14 @@
 
 
 ## Variables
-OPENSSH_INFO		:= http://www.openssh.com/
-OPENSSH_VERSION		:= 7.6p1
-OPENSSH_TARBALL		:= openssh-$(OPENSSH_VERSION).tar.gz
-OPENSSH_URL			:= https://mirrors.evowise.com/pub/OpenBSD/OpenSSH/portable/$(OPENSSH_TARBALL)
-OPENSSH_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(OPENSSH_TARBALL)
-OPENSSH_DIR			:= $(INITRD_SOURCE_DIR)/openssh-$(OPENSSH_VERSION)
+OPENSSH_INFO        := https://www.openssh.com/
+OPENSSH_VERSION     := 7.9p1
+OPENSSH_TARBALL     := openssh-$(OPENSSH_VERSION).tar.gz
+OPENSSH_URL         := https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/$(OPENSSH_TARBALL)
+OPENSSH_DOWNLOAD    := $(DOWNLOAD_DIR)/$(OPENSSH_TARBALL)
+OPENSSH_DIR         := $(INITRD_SOURCE_DIR)/openssh-$(OPENSSH_VERSION)
 ifeq ($(ARCH),i386)
-	SSH_BUILD_CONFIG:= "--build=i486-pc-linux-gnu"
+    SSH_BUILD_CONFIG := "--build=i486-pc-linux-gnu"
 endif
 
 

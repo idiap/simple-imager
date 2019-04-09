@@ -7,14 +7,14 @@
 
 
 ## Variables
-BUSYBOX_INFO		:= http://www.busybox.net/
-BUSYBOX_VERSION		:= 1.27.2
-BUSYBOX_TARBALL		:= busybox-$(BUSYBOX_VERSION).tar.bz2
-BUSYBOX_URL			:= http://busybox.net/downloads/$(BUSYBOX_TARBALL)
-BUSYBOX_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(BUSYBOX_TARBALL)
-BUSYBOX_DIR			:= $(INITRD_SOURCE_DIR)/busybox-$(BUSYBOX_VERSION)
-BUSYBOX_PATCHES 	:= $(shell find $(INITRD_PATCH_DIR) -type f -name "busybox.*.patch" -exec basename {} \; | sort)
-BUSYBOX_CONFIG		:= $(INITRD_CONFIG_DIR)/busybox.config
+BUSYBOX_INFO        := https://www.busybox.net/
+BUSYBOX_VERSION     := 1.30.1
+BUSYBOX_TARBALL     := busybox-$(BUSYBOX_VERSION).tar.bz2
+BUSYBOX_URL         := https://busybox.net/downloads/$(BUSYBOX_TARBALL)
+BUSYBOX_DOWNLOAD    := $(DOWNLOAD_DIR)/$(BUSYBOX_TARBALL)
+BUSYBOX_DIR         := $(INITRD_SOURCE_DIR)/busybox-$(BUSYBOX_VERSION)
+BUSYBOX_PATCHES     := $(shell find $(INITRD_PATCH_DIR) -type f -name "busybox.*.patch" -exec basename {} \; | sort)
+BUSYBOX_CONFIG      := $(INITRD_CONFIG_DIR)/busybox.config
 
 
 ## Targets

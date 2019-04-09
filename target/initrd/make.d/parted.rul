@@ -7,12 +7,13 @@
 
 
 ## Variables
-PARTED_INFO			:= http://www.gnu.org/software/parted/index.shtml
-PARTED_VERSION		:= 3.2
-PARTED_TARBALL		:= parted-$(PARTED_VERSION).tar.xz
-PARTED_URL			:= http://ftp.gnu.org/gnu/parted/$(PARTED_TARBALL)
-PARTED_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(PARTED_TARBALL)
-PARTED_DIR			:= $(INITRD_SOURCE_DIR)/parted-$(PARTED_VERSION)
+PARTED_INFO         := https://www.gnu.org/software/parted/index.shtml
+PARTED_VERSION      := 3.2
+PARTED_TARBALL      := parted-$(PARTED_VERSION).tar.xz
+PARTED_URL          := https://ftp.gnu.org/gnu/parted/$(PARTED_TARBALL)
+PARTED_DOWNLOAD     := $(DOWNLOAD_DIR)/$(PARTED_TARBALL)
+PARTED_DIR          := $(INITRD_SOURCE_DIR)/parted-$(PARTED_VERSION)
+PARTED_PATCHES      := $(shell find $(INITRD_PATCH_DIR) -type f -name "parted.*.patch" -exec basename {} \; | sort)
 
 
 ## Targets
@@ -34,8 +35,8 @@ INITRD_BUILD_ALL += $(PARTED_DIR).install
 parted_clean: $(PARTED_DIR).clean
 
 
-## Recipes (deps: readline, linutil, e2fsprogs, lvm)
-$(PARTED_DIR).configure: $(PARTED_DIR).unpack
+## Recipes (deps: ncurses, readline, linutil, e2fsprogs, lvm)
+$(PARTED_DIR).configure: $(PARTED_DIR).patch
 	cd $(PARTED_DIR) \
 	&& CPPFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include" \
 	   LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
@@ -58,6 +59,11 @@ $(PARTED_DIR).build: $(PARTED_DIR).configure
 $(PARTED_DIR).install: $(PARTED_DIR).build
 	cd $(PARTED_DIR) \
 	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR)
+	touch $@
+
+$(PARTED_DIR).patch: $(PARTED_DIR).unpack
+	cd $(PARTED_DIR) \
+	&& $(foreach patch, $(PARTED_PATCHES), echo -n "Applying patch $(patch)..." && cat ${INITRD_PATCH_DIR}/$(patch) | patch -s -p1 && echo &&) echo 'Done (applying patches)'
 	touch $@
 
 $(PARTED_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(PARTED_DOWNLOAD)

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # -*- mode:sh; sh-indentation:2; intent-tabs-mode:nil; -*-
 # ex: filetype=sh tabstop=2 softtabstop=2 shiftwidth=2 expandtab autoindent smartindent
 ## Simple Imager
@@ -26,6 +26,10 @@ MY_DIR="${3}"
 ## Parameters
 MY_DIR_DFLT="${HOME}/download"
 MY_WGET_OPTS="--quiet --passive-ftp"
+
+
+## Check
+[ "${MY_URL:0:8}" != 'https://' ] && echo "WARNING[${0##*/}]: Unsecure URL; ${MY_URL}" >&2
 
 
 ## Download

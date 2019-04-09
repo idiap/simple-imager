@@ -7,18 +7,21 @@
 
 
 ## Variables
-MDADM_INFO			:= http://www.kernel.org/pub/linux/utils/raid/mdadm/
-MDADM_VERSION		:= 4.0
-MDADM_TARBALL		:= mdadm-$(MDADM_VERSION).tar.xz
-MDADM_URL			:= https://www.kernel.org/pub/linux/utils/raid/mdadm/$(MDADM_TARBALL)
-MDADM_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(MDADM_TARBALL)
-MDADM_DIR			:= $(INITRD_SOURCE_DIR)/mdadm-$(MDADM_VERSION)
+MDADM_INFO          := https://www.kernel.org/pub/linux/utils/raid/mdadm/
+MDADM_VERSION       := 4.1
+MDADM_TARBALL       := mdadm-$(MDADM_VERSION).tar.xz
+MDADM_URL           := https://www.kernel.org/pub/linux/utils/raid/mdadm/$(MDADM_TARBALL)
+MDADM_DOWNLOAD      := $(DOWNLOAD_DIR)/$(MDADM_TARBALL)
+MDADM_DIR           := $(INITRD_SOURCE_DIR)/mdadm-$(MDADM_VERSION)
 
 
 ## Targets
 .PHONY: mdadm_download
 mdadm_download: $(MDADM_DOWNLOAD)
 INITRD_DOWNLOAD_ALL += $(MDADM_DOWNLOAD)
+
+.PHONY: mdadm_configure
+mdadm_configure: $(MDADM_DIR).configure
 
 .PHONY: mdadm_build
 mdadm_build: $(MDADM_DIR).build
@@ -32,7 +35,10 @@ mdadm_clean: $(MDADM_DIR).clean
 
 
 ## Recipes
-$(MDADM_DIR).build: $(MDADM_DIR).unpack
+$(MDADM_DIR).configure: $(MDADM_DIR).unpack
+	touch $@
+
+$(MDADM_DIR).build: $(MDADM_DIR).configure
 	cd $(MDADM_DIR) \
 	&& $(MAKE) -j $(NCPUS)
 	touch $@

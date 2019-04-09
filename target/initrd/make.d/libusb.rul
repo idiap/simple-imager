@@ -7,13 +7,12 @@
 
 
 ## Variables
-LIBUSB_INFO			:= http://www.libusb.info/
-LIBUSB_VERSION		:= 1.0.21
-LIBUSB_VERSHORT		:= $(shell echo $(LIBUSB_VERSION) | sed 's/^\([^.]*\.[^.]*\)\..*$$/\1/')
-LIBUSB_TARBALL		:= libusb-$(LIBUSB_VERSION).tar.bz2
-LIBUSB_URL			:= https://downloads.sourceforge.net/project/libusb/libusb-$(LIBUSB_VERSHORT)/libusb-$(LIBUSB_VERSION)/$(LIBUSB_TARBALL)
-LIBUSB_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(LIBUSB_TARBALL)
-LIBUSB_DIR			:= $(INITRD_SOURCE_DIR)/libusb-$(LIBUSB_VERSION)
+LIBUSB_INFO         := https://libusb.info/
+LIBUSB_VERSION      := 1.0.22
+LIBUSB_TARBALL      := libusb-$(LIBUSB_VERSION).tar.bz2
+LIBUSB_URL          := https://github.com/libusb/libusb/releases/download/v$(LIBUSB_VERSION)/$(LIBUSB_TARBALL)
+LIBUSB_DOWNLOAD     := $(DOWNLOAD_DIR)/$(LIBUSB_TARBALL)
+LIBUSB_DIR          := $(INITRD_SOURCE_DIR)/libusb-$(LIBUSB_VERSION)
 
 
 ## Targets

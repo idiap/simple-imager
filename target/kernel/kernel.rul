@@ -6,11 +6,11 @@
 
 
 ## Variables
-KERNEL_MAKE_DIR		:= $(KERNEL_DIR)/make.d
-KERNEL_PATCH_DIR	:= $(KERNEL_DIR)/patch.d
-KERNEL_CONFIG_DIR	:= $(KERNEL_DIR)/conf.d
-KERNEL_BUILD_DIR	:= $(BUILD_DIR)/kernel
-KERNEL_SOURCE_DIR	:= $(KERNEL_BUILD_DIR)/source
+KERNEL_MAKE_DIR     := $(KERNEL_DIR)/make.d
+KERNEL_PATCH_DIR    := $(KERNEL_DIR)/patch.d
+KERNEL_CONFIG_DIR   := $(KERNEL_DIR)/conf.d
+KERNEL_BUILD_DIR    := $(BUILD_DIR)/kernel
+KERNEL_SOURCE_DIR   := $(KERNEL_BUILD_DIR)/source
 
 
 ## Includes

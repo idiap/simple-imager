@@ -7,18 +7,21 @@
 
 
 ## Variables
-PIGZ_INFO			:= http://zlib.net/pigz/
-PIGZ_VERSION		:= 2.3.4
-PIGZ_TARBALL		:= pigz-$(PIGZ_VERSION).tar.gz
-PIGZ_URL			:= http://zlib.net/pigz/$(PIGZ_TARBALL)
-PIGZ_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(PIGZ_TARBALL)
-PIGZ_DIR			:= $(INITRD_SOURCE_DIR)/pigz-$(PIGZ_VERSION)
+PIGZ_INFO           := https://zlib.net/pigz/
+PIGZ_VERSION        := 2.4
+PIGZ_TARBALL        := pigz-$(PIGZ_VERSION).tar.gz
+PIGZ_URL            := https://zlib.net/pigz/$(PIGZ_TARBALL)
+PIGZ_DOWNLOAD       := $(DOWNLOAD_DIR)/$(PIGZ_TARBALL)
+PIGZ_DIR            := $(INITRD_SOURCE_DIR)/pigz-$(PIGZ_VERSION)
 
 
 ## Targets
 .PHONY: pigz_download
 pigz_download: $(PIGZ_DOWNLOAD)
 INITRD_DOWNLOAD_ALL += $(PIGZ_DOWNLOAD)
+
+.PHONY: pigz_configure
+pigz_configure: $(PIGZ_DIR).configure
 
 .PHONY: pigz_build
 pigz_build: $(PIGZ_DIR).build
@@ -32,9 +35,12 @@ pigz_clean: $(PIGZ_DIR).clean
 
 
 ## Recipes (deps: zlib)
-$(PIGZ_DIR).build: $(PIGZ_DIR).unpack
+$(PIGZ_DIR).configure: $(PIGZ_DIR).unpack
+	touch $@
+
+$(PIGZ_DIR).build: $(PIGZ_DIR).configure
 	cd $(PIGZ_DIR) \
-	&& sed -i "s|CFLAGS\s*=\(.*\)$$|CFLAGS=-I$(INITRD_IMAGE_DIR)/usr/include|g;s|LDFLAGS\s*=\(.*\)$$|LDFLAGS=-L$(INITRD_IMAGE_DIR)/usr/lib \1|g" Makefile \
+	&& sed -i "s|CFLAGS\s*=\(.*\)$$|CFLAGS=-I$(INITRD_IMAGE_DIR)/usr/include \1|g;s|LDFLAGS\s*=\(.*\)$$|LDFLAGS=-L$(INITRD_IMAGE_DIR)/usr/lib \1|g" Makefile \
 	&& $(MAKE) -j $(NCPUS)
 	touch $@
 

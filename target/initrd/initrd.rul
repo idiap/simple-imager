@@ -7,12 +7,12 @@
 
 
 ## Variables
-INITRD_MAKE_DIR		:= $(INITRD_DIR)/make.d
-INITRD_PATCH_DIR	:= $(INITRD_DIR)/patch.d
-INITRD_CONFIG_DIR	:= $(INITRD_DIR)/conf.d
-INITRD_BUILD_DIR	:= $(BUILD_DIR)/initrd
-INITRD_SOURCE_DIR	:= $(INITRD_BUILD_DIR)/source
-INITRD_IMAGE_DIR	:= $(INITRD_BUILD_DIR)/image
+INITRD_MAKE_DIR     := $(INITRD_DIR)/make.d
+INITRD_PATCH_DIR    := $(INITRD_DIR)/patch.d
+INITRD_CONFIG_DIR   := $(INITRD_DIR)/conf.d
+INITRD_BUILD_DIR    := $(BUILD_DIR)/initrd
+INITRD_SOURCE_DIR   := $(INITRD_BUILD_DIR)/source
+INITRD_IMAGE_DIR    := $(INITRD_BUILD_DIR)/image
 
 
 ## Setup pkg-config (to use only resources we built)
@@ -31,17 +31,18 @@ include $(INITRD_MAKE_DIR)/xz.rul
 include $(INITRD_MAKE_DIR)/openssl.rul
 include $(INITRD_MAKE_DIR)/ncurses.rul
 include $(INITRD_MAKE_DIR)/readline.rul
+include $(INITRD_MAKE_DIR)/busybox.rul
 include $(INITRD_MAKE_DIR)/kmod.rul
 include $(INITRD_MAKE_DIR)/kexec.rul
 include $(INITRD_MAKE_DIR)/utillinux.rul
 include $(INITRD_MAKE_DIR)/coreutils.rul
-include $(INITRD_MAKE_DIR)/busybox.rul
-include $(INITRD_MAKE_DIR)/bc.rul
 include $(INITRD_MAKE_DIR)/genders.rul
 include $(INITRD_MAKE_DIR)/udev.rul
+include $(INITRD_MAKE_DIR)/pciutils.rul
 include $(INITRD_MAKE_DIR)/libusb.rul
 include $(INITRD_MAKE_DIR)/usbutils.rul
 include $(INITRD_MAKE_DIR)/lsscsi.rul
+include $(INITRD_MAKE_DIR)/libaio.rul
 include $(INITRD_MAKE_DIR)/e2fsprogs.rul
 include $(INITRD_MAKE_DIR)/lvm.rul
 include $(INITRD_MAKE_DIR)/mdadm.rul
@@ -62,6 +63,9 @@ include $(INITRD_MAKE_DIR)/aria2.rul
 ## Targets
 .PHONY: initrd_download
 initrd_download: $(INITRD_DIR).download
+
+.PHONY: initrd_mkdir
+initrd_mkdir: $(INITRD_IMAGE_DIR).mkdir
 
 .PHONY: initrd_build
 initrd_build: $(INITRD_BUILD_DIR).build

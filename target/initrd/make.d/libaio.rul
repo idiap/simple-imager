@@ -1,0 +1,62 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2019 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+LIBAIO_INFO         := https://pagure.io/libaio
+LIBAIO_VERSION      := 0.3.111
+LIBAIO_TARBALL      := libaio-libaio-$(LIBAIO_VERSION).tar.gz
+LIBAIO_URL          := https://pagure.io/libaio/archive/libaio-$(LIBAIO_VERSION)/$(LIBAIO_TARBALL)
+LIBAIO_DOWNLOAD     := $(DOWNLOAD_DIR)/$(LIBAIO_TARBALL)
+LIBAIO_DIR          := $(INITRD_SOURCE_DIR)/libaio-libaio-$(LIBAIO_VERSION)
+
+
+## Targets
+.PHONY: libaio_download
+libaio_download: $(LIBAIO_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(LIBAIO_DOWNLOAD)
+
+.PHONY: libaio_configure
+libaio_configure: $(LIBAIO_DIR).configure
+
+.PHONY: libaio_build
+libaio_build: $(LIBAIO_DIR).build
+
+.PHONY: libaio_install
+libaio_install: $(LIBAIO_DIR).install
+INITRD_BUILD_ALL += $(LIBAIO_DIR).install
+
+.PHONY: libaio_clean
+libaio_clean: $(LIBAIO_DIR).clean
+
+
+## Recipes
+$(LIBAIO_DIR).configure: $(LIBAIO_DIR).unpack
+	touch $@
+
+$(LIBAIO_DIR).build: $(LIBAIO_DIR).configure
+	cd $(LIBAIO_DIR) \
+	&& $(MAKE) -j $(NCPUS)
+	touch $@
+
+$(LIBAIO_DIR).install: $(LIBAIO_DIR).build
+	cd $(LIBAIO_DIR) \
+	&& $(MAKE) install prefix=$(INITRD_IMAGE_DIR)/usr
+	touch $@
+
+$(LIBAIO_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(LIBAIO_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(LIBAIO_DOWNLOAD) -x
+	touch $@
+
+$(LIBAIO_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(LIBAIO_DIR)
+	$(DOWNLOAD) $(LIBAIO_TARBALL) $(LIBAIO_URL) $(DOWNLOAD_DIR)
+	touch $@
+
+$(LIBAIO_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(LIBAIO_DIR)*
+

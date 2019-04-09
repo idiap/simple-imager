@@ -1,0 +1,13 @@
+--- ncurses-6.1.orig/progs/tic.c	2018-01-25 20:16:50.000000000 +0100
++++ ncurses-6.1/progs/tic.c	2019-04-05 12:54:28.399765796 +0200
+@@ -62,9 +62,7 @@
+ static char **namelst = 0;
+ static const char *to_remove;
+ 
+-#if NCURSES_XNAMES
+ static bool using_extensions = FALSE;
+-#endif
+ 
+ static void (*save_check_termtype) (TERMTYPE2 *, bool);
+ static void check_termtype(TERMTYPE2 *tt, bool);
+

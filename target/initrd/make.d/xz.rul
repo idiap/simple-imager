@@ -7,12 +7,12 @@
 
 
 ## Variables
-XZ_INFO				:= http://tukaani.org/xz/
-XZ_VERSION			:= 5.2.3
-XZ_TARBALL			:= xz-$(XZ_VERSION).tar.xz
-XZ_URL				:= http://tukaani.org/xz/$(XZ_TARBALL)
-XZ_DOWNLOAD			:= $(DOWNLOAD_DIR)/$(XZ_TARBALL)
-XZ_DIR				:= $(INITRD_SOURCE_DIR)/xz-$(XZ_VERSION)
+XZ_INFO             := https://tukaani.org/xz/
+XZ_VERSION          := 5.2.4
+XZ_TARBALL          := xz-$(XZ_VERSION).tar.xz
+XZ_URL              := https://tukaani.org/xz/$(XZ_TARBALL)
+XZ_DOWNLOAD         := $(DOWNLOAD_DIR)/$(XZ_TARBALL)
+XZ_DIR              := $(INITRD_SOURCE_DIR)/xz-$(XZ_VERSION)
 
 
 ## Targets

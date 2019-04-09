@@ -1,0 +1,73 @@
+# -*- mode:makefile; tab-width:4; c-basic-offset:4; intent-tabs-mode:nil; -*-
+# ex: filetype=make tabstop=4 softtabstop=4 shiftwidth=4 autoindent smartindent
+## Simple Imager
+# Copyright (C) 2019 Idiap Research Institute [SimpleImager]
+# (please refer to the COPYRIGHT and CREDITS.* files for further information)
+
+
+## Variables
+PCIUTILS_INFO       := https://www.kernel.org/pub/software/utils/pciutils/
+PCIUTILS_VERSION    := 3.6.2
+PCIUTILS_TARBALL    := pciutils-$(PCIUTILS_VERSION).tar.xz
+PCIUTILS_URL        := https://www.kernel.org/pub/software/utils/pciutils/$(PCIUTILS_TARBALL)
+PCIUTILS_DOWNLOAD   := $(DOWNLOAD_DIR)/$(PCIUTILS_TARBALL)
+PCIUTILS_DIR        := $(INITRD_SOURCE_DIR)/pciutils-$(PCIUTILS_VERSION)
+PCIUTILS_PCIIDS     := https://github.com/pciutils/pciids/raw/master/pci.ids
+PCIUTILS_PATCHES    := $(shell find $(INITRD_PATCH_DIR) -type f -name "pciutils.*.patch" -exec basename {} \; | sort)
+
+
+## Targets
+.PHONY: pciutils_download
+pciutils_download: $(PCIUTILS_DOWNLOAD)
+INITRD_DOWNLOAD_ALL += $(PCIUTILS_DOWNLOAD)
+
+.PHONY: pciutils_configure
+pciutils_configure: $(PCIUTILS_DIR).configure
+
+.PHONY: pciutils_build
+pciutils_build: $(PCIUTILS_DIR).build
+
+.PHONY: pciutils_install
+pciutils_install: $(PCIUTILS_DIR).install
+INITRD_BUILD_ALL += $(PCIUTILS_DIR).install
+
+.PHONY: pciutils_clean
+pciutils_clean: $(PCIUTILS_DIR).clean
+
+
+## Recipes (deps: zlib kmod udev)
+$(PCIUTILS_DIR).configure: $(PCIUTILS_DIR).patch
+	cp $(DOWNLOAD_DIR)/pci.ids $(PCIUTILS_DIR)/pci.ids
+	touch $@
+
+$(PCIUTILS_DIR).build: $(PCIUTILS_DIR).configure
+	cd $(PCIUTILS_DIR) \
+	&& sed -i "s|CFLAGS\s*=\(.*\)$$|CFLAGS=-I$(INITRD_IMAGE_DIR)/usr/include \1|g" Makefile \
+	&& LDFLAGS="-L$(INITRD_IMAGE_DIR)/usr/lib" \
+	   $(MAKE) -j $(NCPUS) PREFIX=/usr
+	touch $@
+
+$(PCIUTILS_DIR).install: $(PCIUTILS_DIR).build
+	cd $(PCIUTILS_DIR) \
+	&& $(MAKE) install DESTDIR=$(INITRD_IMAGE_DIR) PREFIX=/usr
+	touch $@
+
+$(PCIUTILS_DIR).patch: $(PCIUTILS_DIR).unpack
+	cd $(PCIUTILS_DIR) \
+	&& $(foreach patch, $(PCIUTILS_PATCHES), echo -n "Applying patch $(patch)..." && cat ${INITRD_PATCH_DIR}/$(patch) | patch -s -p1 && echo &&) echo 'Done (applying patches)'
+	touch $@
+
+$(PCIUTILS_DIR).unpack: $(INITRD_SOURCE_DIR).mkdir $(PCIUTILS_DOWNLOAD)
+	cd $(INITRD_SOURCE_DIR) \
+	&& $(PTAR) $(PCIUTILS_DOWNLOAD) -x
+	touch $@
+
+$(PCIUTILS_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
+	rm -rf $(PCIUTILS_DIR)
+	$(DOWNLOAD) $(PCIUTILS_TARBALL) $(PCIUTILS_URL) $(DOWNLOAD_DIR)
+	$(DOWNLOAD) pci.ids $(PCIUTILS_PCIIDS) $(DOWNLOAD_DIR)
+	touch $@
+
+$(PCIUTILS_DIR).clean: $(INITRD_BUILD_DIR).clear
+	rm -rf $(PCIUTILS_DIR)*
+

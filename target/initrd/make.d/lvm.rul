@@ -7,12 +7,12 @@
 
 
 ## Variables
-LVM_INFO			:= http://sources.redhat.com/lvm2/
-LVM_VERSION			:= 2.2.02.176
-LVM_TARBALL			:= LVM$(LVM_VERSION).tgz
-LVM_URL				:= ftp://sources.redhat.com/pub/lvm2/releases/$(LVM_TARBALL)
-LVM_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(LVM_TARBALL)
-LVM_DIR				:= $(INITRD_SOURCE_DIR)/LVM$(LVM_VERSION)
+LVM_INFO            := https://www.sourceware.org/lvm2/
+LVM_VERSION         := 2.2.02.184
+LVM_TARBALL         := LVM$(LVM_VERSION).tgz
+LVM_URL             := https://sourceware.org/pub/lvm2/$(LVM_TARBALL)
+LVM_DOWNLOAD        := $(DOWNLOAD_DIR)/$(LVM_TARBALL)
+LVM_DIR             := $(INITRD_SOURCE_DIR)/LVM$(LVM_VERSION)
 
 
 ## Targets
@@ -34,7 +34,7 @@ INITRD_BUILD_ALL += $(LVM_DIR).install
 lvm_clean: $(LVM_DIR).clean
 
 
-## Recipes (deps: readline, linutil, udev)
+## Recipes (deps: readline, linutil, udev, libaio)
 $(LVM_DIR).configure: $(LVM_DIR).unpack
 	cd $(LVM_DIR) \
 	&& CFLAGS="-I$(INITRD_IMAGE_DIR)/usr/include -L$(INITRD_IMAGE_DIR)/usr/lib" \

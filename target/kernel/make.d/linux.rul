@@ -7,29 +7,29 @@
 
 
 ## Variables
-LINUX_INFO			:= http://kernel.org
-LINUX_VERSION		:= 4.9.66
-LINUX_VERSHORT		:= $(shell echo $(LINUX_VERSION) | sed 's/^\([^.]*\.[^.]*\)\..*$$/\1/')
-LINUX_TARBALL		:= linux-$(LINUX_VERSION).tar.xz
-LINUX_URL			:= https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-$(LINUX_VERSION).tar.xz
-LINUX_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(LINUX_TARBALL)
-LINUX_DIR			:= $(KERNEL_SOURCE_DIR)/linux-$(LINUX_VERSION)
-LINUX_CONFIG		:= $(KERNEL_CONFIG_DIR)/linux.$(ARCH).config
+LINUX_INFO          := https://www.kernel.org
+LINUX_VERSION       := 4.19.33
+LINUX_VERSHORT      := $(shell echo $(LINUX_VERSION) | sed 's/^\([^.]*\.[^.]*\)\..*$$/\1/')
+LINUX_TARBALL       := linux-$(LINUX_VERSION).tar.xz
+LINUX_URL           := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(LINUX_VERSION).tar.xz
+LINUX_DOWNLOAD      := $(DOWNLOAD_DIR)/$(LINUX_TARBALL)
+LINUX_DIR           := $(KERNEL_SOURCE_DIR)/linux-$(LINUX_VERSION)
+LINUX_CONFIG        := $(KERNEL_CONFIG_DIR)/linux.$(ARCH).config
 # Patches; names for kernel patch files can be of 2 forms:
 #   1) patches that apply to all architectures
 #        linux.all.XX<name>.patch
 #   2) patch applies to a subset of arches
 #        linux.<arch1>,<arch2>,...,<archN>.XX<name>.patch
-LINUX_PATCHES 		:= $(shell find $(KERNEL_PATCH_DIR) \
-								-type f \
-								-name "linux.$(ARCH).*.patch" -o \
-								-name "linux.all.*.patch" -o \
-								-name "linux.$(ARCH),*.*.patch" -o \
-								-name "linux.*,$(ARCH),*.*.patch" -o \
-								-name "linux.*,$(ARCH).*.patch" \
-								-exec basename {} \; | sort)
-LINUX_TARGET		:= bzImage
-LINUX_IMAGE			:= $(LINUX_DIR)/arch/$(ARCH)/boot/$(LINUX_TARGET)
+LINUX_PATCHES       := $(shell find $(KERNEL_PATCH_DIR) \
+                        -type f \
+                        -name "linux.$(ARCH).*.patch" -o \
+                        -name "linux.all.*.patch" -o \
+                        -name "linux.$(ARCH),*.*.patch" -o \
+                        -name "linux.*,$(ARCH),*.*.patch" -o \
+                        -name "linux.*,$(ARCH).*.patch" \
+                        -exec basename {} \; | sort)
+LINUX_TARGET        := bzImage
+LINUX_IMAGE         := $(LINUX_DIR)/arch/$(ARCH)/boot/$(LINUX_TARGET)
 
 
 ## Targets
@@ -87,6 +87,6 @@ $(LINUX_DOWNLOAD): $(DOWNLOAD_DIR).mkdir
 	$(DOWNLOAD) $(LINUX_TARBALL) $(LINUX_URL) $(DOWNLOAD_DIR)
 	touch $@
 
-$(LINUX_DIR).clean: $(KERNEL_DIR).uninstall
+$(LINUX_DIR).clean:
 	rm -rf $(LINUX_DIR)*
 

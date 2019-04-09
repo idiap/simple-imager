@@ -7,12 +7,12 @@
 
 
 ## Variables
-READLINE_INFO		:= https://cnswww.cns.cwru.edu/php/chet/readline/rltop.html
-READLINE_VERSION	:= 7.0
-READLINE_TARBALL	:= readline-$(READLINE_VERSION).tar.gz
-READLINE_URL		:= http://ftp.gnu.org/gnu/readline/$(READLINE_TARBALL)
-READLINE_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(READLINE_TARBALL)
-READLINE_DIR		:= $(INITRD_SOURCE_DIR)/readline-$(READLINE_VERSION)
+READLINE_INFO       := https://tiswww.case.edu/php/chet/readline/rltop.html
+READLINE_VERSION    := 8.0
+READLINE_TARBALL    := readline-$(READLINE_VERSION).tar.gz
+READLINE_URL        := https://ftp.gnu.org/gnu/readline/$(READLINE_TARBALL)
+READLINE_DOWNLOAD   := $(DOWNLOAD_DIR)/$(READLINE_TARBALL)
+READLINE_DIR        := $(INITRD_SOURCE_DIR)/readline-$(READLINE_VERSION)
 
 
 ## Targets

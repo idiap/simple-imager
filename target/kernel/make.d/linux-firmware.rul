@@ -7,9 +7,9 @@
 
 
 ## Variables
-LINUX_FIRMWARE_INFO	:= http://kernel.org
-LINUX_FIRMWARE_GIT	:= http://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
-LINUX_FIRMWARE_DIR	:= $(DOWNLOAD_DIR)/linux-firmware
+LINUX_FIRMWARE_INFO := https://www.kernel.org
+LINUX_FIRMWARE_GIT  := https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
+LINUX_FIRMWARE_DIR  := $(DOWNLOAD_DIR)/linux-firmware
 
 
 ## Targets

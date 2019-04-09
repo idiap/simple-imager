@@ -7,12 +7,12 @@
 
 
 ## Variables
-GZIP_INFO			:= https://www.gnu.org/software/gzip/
-GZIP_VERSION		:= 1.8
-GZIP_TARBALL		:= gzip-$(GZIP_VERSION).tar.xz
-GZIP_URL			:= http://ftp.gnu.org/gnu/gzip/$(GZIP_TARBALL)
-GZIP_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(GZIP_TARBALL)
-GZIP_DIR			:= $(INITRD_SOURCE_DIR)/gzip-$(GZIP_VERSION)
+GZIP_INFO           := https://www.gnu.org/software/gzip/
+GZIP_VERSION        := 1.10
+GZIP_TARBALL        := gzip-$(GZIP_VERSION).tar.xz
+GZIP_URL            := https://ftp.gnu.org/gnu/gzip/$(GZIP_TARBALL)
+GZIP_DOWNLOAD       := $(DOWNLOAD_DIR)/$(GZIP_TARBALL)
+GZIP_DIR            := $(INITRD_SOURCE_DIR)/gzip-$(GZIP_VERSION)
 
 
 ## Targets

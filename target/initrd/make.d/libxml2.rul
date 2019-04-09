@@ -7,12 +7,13 @@
 
 
 ## Variables
-LIBXML2_INFO		:= http://xmlsoft.org/
-LIBXML2_VERSION		:= 2.9.7
-LIBXML2_TARBALL		:= libxml2-$(LIBXML2_VERSION).tar.gz
-LIBXML2_URL			:= ftp://xmlsoft.org/libxml2/$(LIBXML2_TARBALL)
-LIBXML2_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(LIBXML2_TARBALL)
-LIBXML2_DIR			:= $(INITRD_SOURCE_DIR)/libxml2-$(LIBXML2_VERSION)
+#  WARNING: UNSECURE SUPPLY CHAIN !!!
+LIBXML2_INFO        := http://xmlsoft.org/
+LIBXML2_VERSION     := 2.9.9
+LIBXML2_TARBALL     := libxml2-$(LIBXML2_VERSION).tar.gz
+LIBXML2_URL         := ftp://xmlsoft.org/libxml2/$(LIBXML2_TARBALL)
+LIBXML2_DOWNLOAD    := $(DOWNLOAD_DIR)/$(LIBXML2_TARBALL)
+LIBXML2_DIR         := $(INITRD_SOURCE_DIR)/libxml2-$(LIBXML2_VERSION)
 
 
 ## Targets

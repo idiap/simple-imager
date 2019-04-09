@@ -7,12 +7,12 @@
 
 
 ## Variables
-COREUTILS_INFO		:= https://www.gnu.org/software/coreutils/
-COREUTILS_VERSION	:= 8.28
-COREUTILS_TARBALL	:= coreutils-$(COREUTILS_VERSION).tar.xz
-COREUTILS_URL		:= http://ftp.gnu.org/gnu/coreutils/$(COREUTILS_TARBALL)
-COREUTILS_DOWNLOAD	:= $(DOWNLOAD_DIR)/$(COREUTILS_TARBALL)
-COREUTILS_DIR		:= $(INITRD_SOURCE_DIR)/coreutils-$(COREUTILS_VERSION)
+COREUTILS_INFO      := https://www.gnu.org/software/coreutils/
+COREUTILS_VERSION   := 8.31
+COREUTILS_TARBALL   := coreutils-$(COREUTILS_VERSION).tar.xz
+COREUTILS_URL       := https://ftp.gnu.org/gnu/coreutils/$(COREUTILS_TARBALL)
+COREUTILS_DOWNLOAD  := $(DOWNLOAD_DIR)/$(COREUTILS_TARBALL)
+COREUTILS_DIR       := $(INITRD_SOURCE_DIR)/coreutils-$(COREUTILS_VERSION)
 
 
 ## Targets

@@ -7,12 +7,12 @@
 
 
 ## Variables
-SCRUB_INFO			:= https://github.com/chaos/scrub/
-SCRUB_VERSION		:= 2.6.1
-SCRUB_TARBALL		:= scrub-$(SCRUB_VERSION).tar.gz
-SCRUB_URL			:= https://github.com/chaos/scrub/releases/download/$(SCRUB_VERSION)/$(SCRUB_TARBALL)
-SCRUB_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(SCRUB_TARBALL)
-SCRUB_DIR			:= $(INITRD_SOURCE_DIR)/scrub-$(SCRUB_VERSION)
+SCRUB_INFO          := https://github.com/chaos/scrub/
+SCRUB_VERSION       := 2.6.1
+SCRUB_TARBALL       := scrub-$(SCRUB_VERSION).tar.gz
+SCRUB_URL           := https://github.com/chaos/scrub/releases/download/$(SCRUB_VERSION)/$(SCRUB_TARBALL)
+SCRUB_DOWNLOAD      := $(DOWNLOAD_DIR)/$(SCRUB_TARBALL)
+SCRUB_DIR           := $(INITRD_SOURCE_DIR)/scrub-$(SCRUB_VERSION)
 
 
 ## Targets

@@ -7,12 +7,12 @@
 
 
 ## Variables
-KMOD_INFO			:= https://www.kernel.org/pub/linux/utils/kernel/kmod/
-KMOD_VERSION		:= 24
-KMOD_TARBALL		:= kmod-$(KMOD_VERSION).tar.xz
-KMOD_URL			:= https://www.kernel.org/pub/linux/utils/kernel/kmod/$(KMOD_TARBALL)
-KMOD_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(KMOD_TARBALL)
-KMOD_DIR			:= $(INITRD_SOURCE_DIR)/kmod-$(KMOD_VERSION)
+KMOD_INFO           := https://www.kernel.org/pub/linux/utils/kernel/kmod/
+KMOD_VERSION        := 26
+KMOD_TARBALL        := kmod-$(KMOD_VERSION).tar.xz
+KMOD_URL            := https://www.kernel.org/pub/linux/utils/kernel/kmod/$(KMOD_TARBALL)
+KMOD_DOWNLOAD       := $(DOWNLOAD_DIR)/$(KMOD_TARBALL)
+KMOD_DIR            := $(INITRD_SOURCE_DIR)/kmod-$(KMOD_VERSION)
 
 
 ## Targets

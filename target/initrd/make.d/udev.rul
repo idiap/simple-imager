@@ -7,12 +7,12 @@
 
 
 ## Variables
-UDEV_INFO			:= https://wiki.gentoo.org/wiki/Eudev
-UDEV_VERSION		:= 3.2.5
-UDEV_TARBALL		:= eudev-$(UDEV_VERSION).tar.gz
-UDEV_URL			:= https://github.com/gentoo/eudev/archive/v$(UDEV_VERSION).tar.gz
-UDEV_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(UDEV_TARBALL)
-UDEV_DIR			:= $(INITRD_SOURCE_DIR)/eudev-$(UDEV_VERSION)
+UDEV_INFO           := https://wiki.gentoo.org/wiki/Eudev
+UDEV_VERSION        := 3.2.7
+UDEV_TARBALL        := eudev-$(UDEV_VERSION).tar.gz
+UDEV_URL            := https://github.com/gentoo/eudev/archive/v$(UDEV_VERSION).tar.gz
+UDEV_DOWNLOAD       := $(DOWNLOAD_DIR)/$(UDEV_TARBALL)
+UDEV_DIR            := $(INITRD_SOURCE_DIR)/eudev-$(UDEV_VERSION)
 
 
 ## Targets

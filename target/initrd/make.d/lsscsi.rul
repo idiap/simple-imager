@@ -7,12 +7,14 @@
 
 
 ## Variables
-LSSCSI_INFO			:= http://sg.danny.cz/scsi/lsscsi.html
-LSSCSI_VERSION		:= 0.28
-LSSCSI_TARBALL		:= lsscsi-$(LSSCSI_VERSION).tgz
-LSSCSI_URL			:= http://sg.danny.cz/scsi/$(LSSCSI_TARBALL)
-LSSCSI_DOWNLOAD		:= $(DOWNLOAD_DIR)/$(LSSCSI_TARBALL)
-LSSCSI_DIR			:= $(INITRD_SOURCE_DIR)/lsscsi-$(LSSCSI_VERSION)
+#  WARNING: UNSECURE SUPPLY CHAIN !!!
+LSSCSI_INFO         := http://sg.danny.cz/scsi/lsscsi.html
+LSSCSI_VERSION      := 0.30
+LSSCSI_RELEASE      := 030r154
+LSSCSI_TARBALL      := lsscsi-$(LSSCSI_VERSION).tgz
+LSSCSI_URL          := http://sg.danny.cz/scsi/$(LSSCSI_TARBALL)
+LSSCSI_DOWNLOAD     := $(DOWNLOAD_DIR)/$(LSSCSI_TARBALL)
+LSSCSI_DIR          := $(INITRD_SOURCE_DIR)/lsscsi-$(LSSCSI_RELEASE)
 
 
 ## Targets
