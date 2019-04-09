@@ -1,0 +1,15 @@
+This directory contains the Linux kernel configure for each target architecture.
+
+In the context of Simple Imager, the objective of this configuration is
+two-fold:
+- make the kernel (and initrd-stored modules) as small as possible,
+  for fast network (PXE) boot
+- while still providing required hardware support
+
+It comes down two:
+- disabling all unrequired hardware, protocols, subsystems and benchmarking/
+  test/debug options
+- enable just the hardware, protocols and subsytems required for the Simple
+  Imager target to achieve its purpose: boot, initialize the network, retrieve
+  and finally install the system image (and that's it!)
+

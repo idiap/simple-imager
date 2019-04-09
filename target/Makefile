@@ -6,23 +6,23 @@
 
 
 ## Variables
-VERSION			:= $(shell head -n 1 debian/changelog | sed 's/^[^(]*(\([^)]*\)).*$$/\1/')
-MACHINE			:= $(shell uname -m)
+VERSION         := $(shell head -n 1 debian/changelog | sed 's/^[^(]*(\([^)]*\)).*$$/\1/')
+MACHINE         := $(shell uname -m)
 ifeq ($(MACHINE), x86_64)
-	ARCH		:= x86_64
-	ARCH_BITS	:= 64
+    ARCH        := x86_64
+    ARCH_BITS   := 64
 endif
-NCPUS			:= $(shell grep -E '^(physical|core) id' /proc/cpuinfo | tr '\n' ' ' | sed 's/ physical id/\nphysical id/g;s/[ \t]//g' | sort -u | wc -l)
+NCPUS           := $(shell grep -E '^(physical|core) id' /proc/cpuinfo | tr '\n' ' ' | sed 's/ physical id/\nphysical id/g;s/[ \t]//g' | sort -u | wc -l)
 
 
 ## Directories
-ROOT_DIR		:= $(CURDIR)
-DOWNLOAD_DIR	:= $(ROOT_DIR)/download
-INITRD_DIR		:= $(ROOT_DIR)/initrd
-KERNEL_DIR		:= $(ROOT_DIR)/kernel
-BUILD_DIR		:= $(ROOT_DIR)/build
-RELEASE_DIR		:= $(ROOT_DIR)/release
-BOOT_DIR		:= $(RELEASE_DIR)/simple-imager-target_$(VERSION)/$(ARCH)
+ROOT_DIR        := $(CURDIR)
+DOWNLOAD_DIR    := $(ROOT_DIR)/download
+INITRD_DIR      := $(ROOT_DIR)/initrd
+KERNEL_DIR      := $(ROOT_DIR)/kernel
+BUILD_DIR       := $(ROOT_DIR)/build
+RELEASE_DIR     := $(ROOT_DIR)/release
+BOOT_DIR        := $(RELEASE_DIR)/simple-imager-target_$(VERSION)/$(ARCH)
 
 
 ## Tools
@@ -85,7 +85,7 @@ show_targets:
 	@echo "  kernel_{download|build|install|uninstall|clean}"
 	@echo "    Download/build/install/uninstall/clean only the kernel."
 	@echo
-	@echo "  initrd_{download|build|install|uninstall|clean}"
+	@echo "  initrd_{download|mkdir|build|install|uninstall|clean}"
 	@echo "    Download/build/install/uninstall/clean only the initrd."
 	@echo
 	@echo "  <package>_{download|build|install|uninstall|clean}"

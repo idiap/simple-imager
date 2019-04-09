@@ -1,0 +1,6 @@
+This directory is intended to contain patches to be applied to the various
+packages (and may be empty).
+
+Patches must be named as per following convention:
+ - <package>.<description>.patch
+

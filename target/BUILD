@@ -63,3 +63,32 @@ Including the downloaded resources (really?!):
 
   make distclean
 
+
+The Developer Way
+=================
+
+In order to introspect/troubleshoot the build procedure, developers may want
+to proceed step-by-step:
+
+  # kernel
+  make linux_firmware_download
+  make linux_download
+  make linux_configure
+  make linux_build
+
+  # initrd
+  make initrd_mkdir
+  # (look at the initrd.rul file for the *ordered* list of packages)
+  for package in zlib gzip [...]; do
+    make ${package}_download
+    make ${package}_configure
+    make ${package}_build
+    make ${package}_install
+  done
+
+  # finalize
+  make initrd_finalize
+  make initrd_install
+  make kernel_install
+  make release
+

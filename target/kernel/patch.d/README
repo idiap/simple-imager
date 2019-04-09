@@ -1,0 +1,7 @@
+This directory is intended to contain patches to be applied to the kernel
+(and may be empty).
+
+Patches must be named as per following convention:
+ - linux.all.<description>.patch
+ - linux.<arch>.<description>.patch
+
